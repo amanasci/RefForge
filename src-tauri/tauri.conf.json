@@ -23,18 +23,19 @@
     ],
     "security": {
       "csp": null
+    },
+    "allowlist": {
+      "fs": {
+        "scope": ["$APP/*"],
+        "all": true
+      },
+      "path": {
+        "all": true
+      }
     }
   },
 
-  "plugins": {
-    "fs": {
-      "scope": ["$APP/*"],
-      "all": true
-    },
-    "path": {
-      "all": true
-    }
-  },
+  "plugins": {},
 
   "bundle": {
     "active": true,
