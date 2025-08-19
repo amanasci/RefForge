@@ -2,13 +2,8 @@
 
 import * as React from "react";
 import { v4 as uuidv4 } from "uuid";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import {
-  Project,
-  Reference,
-  mockProjects,
-  mockReferences,
-} from "@/data/mock-data";
+import { useTauriStorage } from "@/hooks/use-tauri-storage";
+import type { Project, Reference } from "@/types";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ReferenceList } from "@/components/reference-list";
 import { AddReferenceDialog } from "@/components/add-reference-dialog";
@@ -16,16 +11,11 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, PlusCircle, LayoutGrid, List } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function RefForgeApp() {
-  const [projects, setProjects] = useLocalStorage<Project[]>(
-    "refforge-projects",
-    mockProjects
-  );
-  const [references, setReferences] = useLocalStorage<Reference[]>(
-    "refforge-references",
-    mockReferences
-  );
+  const [data, setData, loading] = useTauriStorage();
+  const { projects, references } = data || { projects: [], references: [] };
 
   const [activeProjectId, setActiveProjectId] = React.useState<string | null>(
     null
@@ -43,7 +33,7 @@ export default function RefForgeApp() {
       name,
       color: `hsl(${Math.random() * 360}, 70%, 50%)`,
     };
-    setProjects([...projects, newProject]);
+    setData({ ...data, projects: [...projects, newProject] });
   };
 
   const handleAddReference = (
@@ -54,18 +44,27 @@ export default function RefForgeApp() {
       id: uuidv4(),
       createdAt: new Date().toISOString(),
     };
-    setReferences([newReference, ...references]);
+    setData({ ...data, references: [newReference, ...references] });
   };
 
   const handleDeleteReference = (id: string) => {
-    setReferences(references.filter((ref) => ref.id !== id));
+    setData({
+      ...data,
+      references: references.filter((ref) => ref.id !== id),
+    });
   };
-  
+
   const handleUpdateReference = (updatedReference: Reference) => {
-    setReferences(references.map((ref) => ref.id === updatedReference.id ? updatedReference : ref));
+    setData({
+      ...data,
+      references: references.map((ref) =>
+        ref.id === updatedReference.id ? updatedReference : ref
+      ),
+    });
   };
 
   const allTags = React.useMemo(() => {
+    if (!references) return [];
     const tags = new Set<string>();
     references.forEach((ref) => ref.tags.forEach((tag) => tags.add(tag)));
     return Array.from(tags);
@@ -76,8 +75,9 @@ export default function RefForgeApp() {
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
   };
-  
+
   const filteredReferences = React.useMemo(() => {
+    if (!references) return [];
     return references.filter((ref) => {
       const projectMatch = !activeProjectId || ref.projectId === activeProjectId;
       const priorityMatch = !activePriority || ref.priority === activePriority;
@@ -96,8 +96,29 @@ export default function RefForgeApp() {
     });
   }, [references, activeProjectId, activePriority, activeTags, searchTerm]);
 
-  const activeProject = projects.find(p => p.id === activeProjectId);
+  const activeProject = projects?.find((p) => p.id === activeProjectId);
   const pageTitle = activeProject ? activeProject.name : "All References";
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full">
+        <div className="w-64 border-r p-4">
+          <Skeleton className="h-8 w-3/4 mb-4" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-5/6" />
+        </div>
+        <div className="flex-1 p-4">
+          <Skeleton className="h-8 w-1/4 mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -128,14 +149,27 @@ export default function RefForgeApp() {
               />
             </div>
             <div className="flex items-center gap-1 p-1 rounded-md bg-muted">
-              <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('grid')}>
-                <LayoutGrid className="h-4 w-4"/>
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode("grid")}
+              >
+                <LayoutGrid className="h-4 w-4" />
               </Button>
-               <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}>
-                <List className="h-4 w-4"/>
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
               </Button>
             </div>
-            <AddReferenceDialog projects={projects} onAddReference={handleAddReference}>
+            <AddReferenceDialog
+              projects={projects}
+              onAddReference={handleAddReference}
+            >
               <Button>
                 <PlusCircle />
                 <span>Add Reference</span>
@@ -144,9 +178,9 @@ export default function RefForgeApp() {
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-          <ReferenceList 
-            references={filteredReferences} 
-            viewMode={viewMode} 
+          <ReferenceList
+            references={filteredReferences}
+            viewMode={viewMode}
             onDelete={handleDeleteReference}
             onUpdate={handleUpdateReference}
             projects={projects}

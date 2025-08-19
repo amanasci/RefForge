@@ -26,6 +26,8 @@
     }
   },
 
+  "plugins": {},
+
   "bundle": {
     "active": true,
     "category": "DeveloperTool",
