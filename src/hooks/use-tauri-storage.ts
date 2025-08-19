@@ -5,6 +5,13 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import {
+  readTextFile,
+  writeTextFile,
+  exists,
+  mkdir,
+  BaseDirectory,
+} from "@tauri-apps/plugin-fs";
 import { mockProjects, mockReferences } from "@/data/mock-data";
 import type { Project, Reference } from "@/types";
 
@@ -21,51 +28,40 @@ const MOCK_DATA: AppData = {
   references: mockReferences,
 };
 
+// V2-compatible logging function
 async function logToFile(message: string) {
   if (typeof window === "undefined" || !window.__TAURI_IPC__) return;
   try {
-    const { path, fs } = await import("@tauri-apps/api");
-    const dataDir = await path.appDataDir();
-    const logFilePath = await path.join(dataDir, LOG_FILE_NAME);
-    const dir = await path.dirname(logFilePath);
-    if (!(await fs.exists(dir))) {
-      await fs.createDir(dir, { recursive: true });
+    // Ensure log directory exists
+    if (!(await exists("", { baseDir: BaseDirectory.AppLog }))) {
+      await mkdir("", { baseDir: BaseDirectory.AppLog, recursive: true });
     }
-    await fs.writeTextFile(
-      logFilePath,
+    await writeTextFile(
+      LOG_FILE_NAME,
       `${new Date().toISOString()}: ${message}\n`,
-      { append: true }
+      { append: true, baseDir: BaseDirectory.AppLog }
     );
   } catch (e) {
     console.error("Failed to log to file:", e);
   }
 }
 
-async function getDataFilePath(): Promise<string | null> {
-  if (typeof window === "undefined" || !window.__TAURI_IPC__) return null;
-  const { path } = await import("@tauri-apps/api");
-  const dataDir = await path.appDataDir();
-  return path.join(dataDir, DATA_FILE_NAME);
-}
-
+// V2-compatible data reading function
 async function readDataFile(): Promise<AppData | null> {
   if (typeof window === "undefined" || !window.__TAURI_IPC__) return null;
 
   await logToFile("Attempting to read data file.");
   try {
-    const { fs } = await import("@tauri-apps/api");
-    const filePath = await getDataFilePath();
-    if (!filePath) return null;
-
-    await logToFile(`Data file path: ${filePath}`);
-    if (!(await fs.exists(filePath))) {
+    if (await exists(DATA_FILE_NAME, { baseDir: BaseDirectory.AppData })) {
+      const contents = await readTextFile(DATA_FILE_NAME, {
+        baseDir: BaseDirectory.AppData,
+      });
+      await logToFile("Data file read successfully.");
+      return JSON.parse(contents);
+    } else {
       await logToFile("Data file does not exist.");
       return null;
     }
-    await logToFile("Data file exists. Reading contents.");
-    const contents = await fs.readTextFile(filePath);
-    await logToFile("Data file read successfully.");
-    return JSON.parse(contents);
   } catch (error: any) {
     await logToFile(`Error reading data file: ${error.message}`);
     console.error("Failed to read data file:", error);
@@ -73,21 +69,20 @@ async function readDataFile(): Promise<AppData | null> {
   }
 }
 
+// V2-compatible data writing function
 async function writeDataFile(data: AppData): Promise<void> {
   if (typeof window === "undefined" || !window.__TAURI_IPC__) return;
   await logToFile("Attempting to write data file.");
   try {
-    const { fs, path } = await import("@tauri-apps/api");
-    const filePath = await getDataFilePath();
-    if (!filePath) return;
-
-    await logToFile(`Writing to data file path: ${filePath}`);
-    const dir = await path.dirname(filePath);
-    if (!(await fs.exists(dir))) {
-      await logToFile("Data directory does not exist. Creating it.");
-      await fs.createDir(dir, { recursive: true });
+    // Ensure app data directory exists
+    if (!(await exists("", { baseDir: BaseDirectory.AppData }))) {
+      await mkdir("", { baseDir: BaseDirectory.AppData, recursive: true });
     }
-    await fs.writeTextFile(filePath, JSON.stringify(data, null, 2));
+    await writeTextFile(
+      DATA_FILE_NAME,
+      JSON.stringify(data, null, 2),
+      { baseDir: BaseDirectory.AppData }
+    );
     await logToFile("Data file written successfully.");
   } catch (error: any) {
     await logToFile(`Error writing data file: ${error.message}`);
@@ -111,9 +106,9 @@ export function useTauriStorage(): [
     }
 
     let isMounted = true;
-    logToFile("useTauriStorage mounted.");
+
     async function loadData() {
-      await logToFile("loadData called.");
+      await logToFile("useTauriStorage mounted. Loading data...");
       const fileData = await readDataFile();
       if (isMounted) {
         if (fileData) {
@@ -135,6 +130,7 @@ export function useTauriStorage(): [
         loadData();
     } else {
         // Not in Tauri, use mock data
+        console.log("Not in Tauri environment, using mock data for development.");
         setData(MOCK_DATA);
         setLoading(false);
     }
