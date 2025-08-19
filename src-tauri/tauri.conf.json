@@ -26,6 +26,16 @@
     }
   },
 
+  "plugins": {
+    "fs": {
+      "scope": ["$APP/*"],
+      "all": true
+    },
+    "path": {
+      "all": true
+    }
+  },
+
   "bundle": {
     "active": true,
     "category": "DeveloperTool",
