@@ -55,17 +55,27 @@ function isTauriEnvironment(): boolean {
   return isTauri;
 }
 
-// Alternative detection method using API availability
+// Alternative detection method using API availability with retry
 async function detectTauriByAPI(): Promise<boolean> {
-  try {
-    // Try to use a basic Tauri FS operation to detect environment
-    await exists("", { baseDir: BaseDirectory.AppData });
-    console.log("[RefForge] Tauri FS API available - running in Tauri environment");
-    return true;
-  } catch (error) {
-    console.log("[RefForge] Tauri FS API not available - running in browser environment");
-    return false;
+  const maxRetries = 3;
+  const delay = 100; // ms
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      // Try to use a basic Tauri FS operation to detect environment
+      await exists("", { baseDir: BaseDirectory.AppData });
+      console.log("[RefForge] Tauri FS API available - running in Tauri environment");
+      return true;
+    } catch (error) {
+      if (attempt < maxRetries - 1) {
+        console.log(`[RefForge] Tauri FS API attempt ${attempt + 1} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.log("[RefForge] Tauri FS API not available after retries - running in browser environment");
+      }
+    }
   }
+  return false;
 }
 
 // V2-compatible logging function with enhanced error handling
@@ -252,11 +262,14 @@ export function useTauriStorage(): [
         await logToFile(`Working directory info: ${typeof __dirname !== 'undefined' ? 'Available' : 'Not available'}`);
         
         // Double-check Tauri environment using API availability
+        console.log("[RefForge] Starting API-based Tauri detection...");
         const apiBasedTauriDetection = await detectTauriByAPI();
+        console.log("[RefForge] API-based Tauri detection result:", apiBasedTauriDetection);
         await logToFile(`API-based Tauri detection: ${apiBasedTauriDetection}`);
         
         // Use API-based detection if global detection failed but API is available
         const actuallyInTauri = tauriEnv || apiBasedTauriDetection;
+        console.log("[RefForge] Final Tauri environment decision:", actuallyInTauri, "(global:", tauriEnv, "api:", apiBasedTauriDetection, ")");
         
         if (!actuallyInTauri) {
           await logToFile("Neither global detection nor API detection found Tauri - using mock data");
