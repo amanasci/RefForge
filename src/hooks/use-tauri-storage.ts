@@ -33,12 +33,22 @@ function isTauriEnvironment(): boolean {
   if (typeof window === "undefined") return false;
   
   // Check multiple possible indicators for Tauri v2
-  return !!(
-    window.__TAURI_IPC__ ||
-    window.__TAURI__ ||
-    (window as any).__TAURI_PLUGIN_FS__ ||
-    (typeof navigator !== "undefined" && navigator.userAgent.includes("Tauri"))
-  );
+  const hasIPC = !!(window as any).__TAURI_IPC__;
+  const hasTauri = !!(window as any).__TAURI__;
+  const hasFS = !!(window as any).__TAURI_PLUGIN_FS__;
+  const hasUserAgent = typeof navigator !== "undefined" && navigator.userAgent.includes("Tauri");
+  
+  const isTauri = hasIPC || hasTauri || hasFS || hasUserAgent;
+  
+  console.log(`[RefForge] Environment detection: ${JSON.stringify({
+    hasIPC,
+    hasTauri, 
+    hasFS,
+    hasUserAgent,
+    result: isTauri
+  })}`);
+  
+  return isTauri;
 }
 
 // V2-compatible logging function with enhanced error handling
@@ -185,6 +195,11 @@ export function useTauriStorage(): [
     async function loadData() {
       try {
         await logToFile("useTauriStorage mounted. Loading data...");
+        
+        // Additional diagnostic information
+        await logToFile(`Current environment: Node.js=${typeof process !== 'undefined'}, Browser=${typeof window !== 'undefined'}, Tauri=${tauriEnv}`);
+        await logToFile(`Working directory info: ${typeof __dirname !== 'undefined' ? 'Available' : 'Not available'}`);
+        
         const fileData = await readDataFile();
         
         if (!isMounted) {
@@ -194,12 +209,18 @@ export function useTauriStorage(): [
         
         if (fileData) {
           await logToFile("File data found, setting state from file");
+          console.log("[RefForge] Successfully loaded data from file:", {
+            projects: fileData.projects?.length || 0,
+            references: fileData.references?.length || 0
+          });
           setData(fileData);
         } else {
           await logToFile("No file data found, initializing with mock data and writing to file");
+          console.log("[RefForge] Initializing with mock data");
           // Always try to write the initial data if we're in Tauri
           if (tauriEnv) {
             await writeDataFile(MOCK_DATA);
+            await logToFile("Initial mock data written to file system");
           }
           setData(MOCK_DATA);
         }
@@ -209,9 +230,11 @@ export function useTauriStorage(): [
       } catch (error: any) {
         console.error("[RefForge] Error in loadData:", error);
         await logToFile(`Error in loadData: ${error.message}`);
+        await logToFile(`Error stack: ${error.stack || 'No stack trace available'}`);
         
         // Fallback to mock data on error
         if (isMounted) {
+          console.log("[RefForge] Falling back to mock data due to error");
           setData(MOCK_DATA);
           setLoading(false);
         }
