@@ -28,12 +28,6 @@
     }
   },
 
-  "plugins": {
-    "fs": {
-      "scope": ["$APPDATA/*", "$APPLOG/*"]
-    }
-  },
-
   "bundle": {
     "active": true,
     "category": "DeveloperTool",
