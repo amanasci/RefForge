@@ -12,6 +12,7 @@
   },
 
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "fullscreen": false,
@@ -27,7 +28,11 @@
     }
   },
 
-  "plugins": {},
+  "plugins": {
+    "fs": {
+      "scope": ["$APPDATA/*", "$APPLOG/*"]
+    }
+  },
 
   "bundle": {
     "active": true,
