@@ -3,6 +3,8 @@ import Database from '@tauri-apps/plugin-sql';
 import type { AppData, Project, Reference } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
+// This interface is to properly type the data coming from the DB
+// before we parse the JSON strings.
 interface ReferenceFromDb {
   id: string;
   title: string;
@@ -28,12 +30,13 @@ export function useTauriStorage() {
     try {
       const projects = await db.current.select<Project[]>("SELECT * FROM projects");
       const referencesRaw = await db.current.select<ReferenceFromDb[]>("SELECT * FROM `references`");
-      console.log("referencesRaw", referencesRaw);
 
       const references: Reference[] = referencesRaw.map(r => ({
         ...r,
-        authors: JSON.parse(r.authors),
-        tags: JSON.parse(r.tags),
+        projectId: r.project_id, // map snake_case to camelCase
+        createdAt: r.created_at,
+        authors: JSON.parse(r.authors || '[]'),
+        tags: JSON.parse(r.tags || '[]'),
       }));
 
       setData({ projects, references });

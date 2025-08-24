@@ -25,7 +25,7 @@ fn main() {
                     tags TEXT NOT NULL,
                     priority INTEGER NOT NULL DEFAULT 0,
                     project_id TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
+                    created_at DATETIME NOT NULL,
                     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
                 );
             ",
