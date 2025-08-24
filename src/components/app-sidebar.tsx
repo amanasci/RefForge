@@ -36,7 +36,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Collapsible,
@@ -157,19 +156,17 @@ export function AppSidebar({
                       />
                       <span className="truncate">{project.name}</span>
                     </div>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5 hidden group-hover:inline-flex"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setProjectToDelete(project);
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </AlertDialogTrigger>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 hidden group-hover:inline-flex"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProjectToDelete(project);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
