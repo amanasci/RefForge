@@ -34,6 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StarRating } from "./star-rating";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const referenceSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -45,6 +47,7 @@ const referenceSchema = z.object({
   tags: z.string().optional(),
   priority: z.number().min(0).max(5),
   projectId: z.string().min(1, "Please select a project"),
+  status: z.enum(["Finished", "Not Finished"]),
 });
 
 type ReferenceFormValues = z.infer<typeof referenceSchema>;
@@ -75,6 +78,7 @@ export function AddReferenceDialog({
       tags: referenceToEdit.tags.join(', '),
       priority: referenceToEdit.priority,
       projectId: referenceToEdit.projectId,
+      status: referenceToEdit.status,
     } : {
       title: "",
       authors: "",
@@ -85,6 +89,7 @@ export function AddReferenceDialog({
       tags: "",
       priority: 0,
       projectId: "",
+      status: "Not Finished",
     }
   }, [referenceToEdit])
 
@@ -106,7 +111,7 @@ export function AddReferenceDialog({
     if (referenceToEdit) {
       onAddReference({ ...referenceToEdit, ...processedData });
     } else {
-      onAddReference(processedData);
+      onAddReference(processedData as Omit<Reference, "id" | "createdAt">);
     }
     setOpen(false);
   };
@@ -267,6 +272,31 @@ export function AddReferenceDialog({
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm col-span-2">
+                  <div className="space-y-0.5">
+                    <FormLabel>Status</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Mark this reference as finished or not.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <div className="flex items-center gap-2">
+                    <Label htmlFor="status-switch" className={field.value === 'Not Finished' ? 'text-muted-foreground' : ''}>Not Finished</Label>
+                    <Switch
+                      id="status-switch"
+                      checked={field.value === "Finished"}
+                      onCheckedChange={(checked) => field.onChange(checked ? "Finished" : "Not Finished")}
+                    />
+                    <Label htmlFor="status-switch" className={field.value === 'Finished' ? '' : 'text-muted-foreground'}>Finished</Label>
+                    </div>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
               <Button type="submit">{referenceToEdit ? "Save Changes" : "Add Reference"}</Button>

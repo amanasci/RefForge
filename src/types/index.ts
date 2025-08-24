@@ -10,6 +10,7 @@ export interface Reference {
   priority: number; // 0 to 5, 0 is no priority
   projectId: string;
   createdAt: string;
+  status: "Finished" | "Not Finished";
 }
 
 export interface Project {
