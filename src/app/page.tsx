@@ -1,9 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { v4 as uuidv4 } from "uuid";
 import { useTauriStorage } from "@/hooks/use-tauri-storage";
-import type { Project, Reference } from "@/types";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ReferenceList } from "@/components/reference-list";
 import { AddReferenceDialog } from "@/components/add-reference-dialog";
@@ -14,54 +12,22 @@ import { Search, PlusCircle, LayoutGrid, List } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function RefForgeApp() {
-  const [data, setData, loading] = useTauriStorage();
+  const {
+    data,
+    loading,
+    addProject,
+    addReference,
+    deleteReference,
+    updateReference,
+  } = useTauriStorage();
+
   const { projects, references } = data || { projects: [], references: [] };
 
-  const [activeProjectId, setActiveProjectId] = React.useState<string | null>(
-    null
-  );
+  const [activeProjectId, setActiveProjectId] = React.useState<string | null>(null);
   const [activeTags, setActiveTags] = React.useState<string[]>([]);
-  const [activePriority, setActivePriority] = React.useState<number | null>(
-    null
-  );
+  const [activePriority, setActivePriority] = React.useState<number | null>(null);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
-
-  const handleAddProject = (name: string) => {
-    const newProject: Project = {
-      id: uuidv4(),
-      name,
-      color: `hsl(${Math.random() * 360}, 70%, 50%)`,
-    };
-    setData({ ...data, projects: [...projects, newProject] });
-  };
-
-  const handleAddReference = (
-    newReferenceData: Omit<Reference, "id" | "createdAt">
-  ) => {
-    const newReference: Reference = {
-      ...newReferenceData,
-      id: uuidv4(),
-      createdAt: new Date().toISOString(),
-    };
-    setData({ ...data, references: [newReference, ...references] });
-  };
-
-  const handleDeleteReference = (id: string) => {
-    setData({
-      ...data,
-      references: references.filter((ref) => ref.id !== id),
-    });
-  };
-
-  const handleUpdateReference = (updatedReference: Reference) => {
-    setData({
-      ...data,
-      references: references.map((ref) =>
-        ref.id === updatedReference.id ? updatedReference : ref
-      ),
-    });
-  };
 
   const allTags = React.useMemo(() => {
     if (!references) return [];
@@ -131,7 +97,7 @@ export default function RefForgeApp() {
         toggleTag={toggleTag}
         activePriority={activePriority}
         setActivePriority={setActivePriority}
-        onAddProject={handleAddProject}
+        onAddProject={(name) => addProject({ name, color: `hsl(${Math.random() * 360}, 70%, 50%)` })}
       />
       <SidebarInset className="flex flex-col min-h-screen">
         <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
@@ -168,7 +134,7 @@ export default function RefForgeApp() {
             </div>
             <AddReferenceDialog
               projects={projects}
-              onAddReference={handleAddReference}
+              onAddReference={addReference}
             >
               <Button>
                 <PlusCircle />
@@ -181,8 +147,8 @@ export default function RefForgeApp() {
           <ReferenceList
             references={filteredReferences}
             viewMode={viewMode}
-            onDelete={handleDeleteReference}
-            onUpdate={handleUpdateReference}
+            onDelete={deleteReference}
+            onUpdate={updateReference}
             projects={projects}
           />
         </main>

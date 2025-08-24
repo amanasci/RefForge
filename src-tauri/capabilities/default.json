@@ -17,6 +17,8 @@
         { "path": "$APPDATA/*" },
         { "path": "$APPLOG/*" }
       ]
-    }
+    },
+    "sql:default",
+    "sql:allow-execute"
   ]
 }
