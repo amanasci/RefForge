@@ -17,6 +17,7 @@ interface ReferenceFromDb {
   priority: number;
   project_id: string;
   created_at: string;
+  status: string;
 }
 
 export function useTauriStorage() {
@@ -37,6 +38,7 @@ export function useTauriStorage() {
         createdAt: r.created_at,
         authors: JSON.parse(r.authors || '[]'),
         tags: JSON.parse(r.tags || '[]'),
+        status: (r.status || "Not Finished") as "Finished" | "Not Finished",
       }));
 
       setData({ projects, references });
@@ -52,6 +54,15 @@ export function useTauriStorage() {
     try {
       const database = await Database.load("sqlite:refforge.db");
       db.current = database;
+      // Add status column to references table if it doesn't exist
+      try {
+        await db.current.execute("ALTER TABLE `references` ADD COLUMN status TEXT NOT NULL DEFAULT 'Not Finished'");
+      } catch (e) {
+        // Ignore error if column already exists
+        if (!String(e).includes('duplicate column name')) {
+            console.error('Failed to alter `references` table:', e);
+        }
+      }
       await refreshData();
     } catch (error) {
       console.error("Failed to load database:", error);
@@ -78,15 +89,24 @@ export function useTauriStorage() {
 
   const deleteProject = useCallback(async (id: string) => {
     if (!db.current) return;
-    await db.current.execute("DELETE FROM projects WHERE id = $1", [id]);
-    await refreshData();
+    try {
+        await db.current.execute('BEGIN TRANSACTION');
+        await db.current.execute("DELETE FROM `references` WHERE project_id = $1", [id]);
+        await db.current.execute("DELETE FROM projects WHERE id = $1", [id]);
+        await db.current.execute('COMMIT');
+    } catch (error) {
+        await db.current.execute('ROLLBACK');
+        console.error('Failed to delete project:', error);
+    } finally {
+        await refreshData();
+    }
   }, [refreshData]);
 
   const addReference = useCallback(async (referenceData: Omit<Reference, 'id' | 'createdAt'>) => {
     if (!db.current) return;
-    const newReference: Reference = { ...referenceData, id: uuidv4(), createdAt: new Date().toISOString() };
+    const newReference: Reference = { ...referenceData, id: uuidv4(), createdAt: new Date().toISOString(), status: referenceData.status || "Not Finished" };
     await db.current.execute(
-        "INSERT INTO `references` (id, title, authors, year, journal, doi, abstract, tags, priority, project_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        "INSERT INTO `references` (id, title, authors, year, journal, doi, abstract, tags, priority, project_id, created_at, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
         [
             newReference.id,
             newReference.title,
@@ -99,6 +119,7 @@ export function useTauriStorage() {
             newReference.priority,
             newReference.projectId,
             newReference.createdAt,
+            newReference.status,
         ]
     );
     await refreshData();
@@ -107,7 +128,7 @@ export function useTauriStorage() {
   const updateReference = useCallback(async (reference: Reference) => {
     if (!db.current) return;
     await db.current.execute(
-        "UPDATE `references` SET title = $1, authors = $2, year = $3, journal = $4, doi = $5, abstract = $6, tags = $7, priority = $8, project_id = $9, created_at = $10 WHERE id = $11",
+        "UPDATE `references` SET title = $1, authors = $2, year = $3, journal = $4, doi = $5, abstract = $6, tags = $7, priority = $8, project_id = $9, status = $10 WHERE id = $11",
         [
             reference.title,
             JSON.stringify(reference.authors),
@@ -118,7 +139,7 @@ export function useTauriStorage() {
             JSON.stringify(reference.tags),
             reference.priority,
             reference.projectId,
-            reference.createdAt,
+            reference.status,
             reference.id,
         ]
     );

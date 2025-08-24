@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTauriStorage } from "@/hooks/use-tauri-storage";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ReferenceList } from "@/components/reference-list";
+import { Project, Reference } from "@/types";
 import { AddReferenceDialog } from "@/components/add-reference-dialog";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ export default function RefForgeApp() {
     data,
     loading,
     addProject,
+    deleteProject,
     addReference,
     deleteReference,
     updateReference,
@@ -32,7 +34,7 @@ export default function RefForgeApp() {
   const allTags = React.useMemo(() => {
     if (!references) return [];
     const tags = new Set<string>();
-    references.forEach((ref) => ref.tags.forEach((tag) => tags.add(tag)));
+    references.forEach((ref: Reference) => ref.tags.forEach((tag: string) => tags.add(tag)));
     return Array.from(tags);
   }, [references]);
 
@@ -44,7 +46,7 @@ export default function RefForgeApp() {
 
   const filteredReferences = React.useMemo(() => {
     if (!references) return [];
-    return references.filter((ref) => {
+    return references.filter((ref: Reference) => {
       const projectMatch = !activeProjectId || ref.projectId === activeProjectId;
       const priorityMatch = !activePriority || ref.priority === activePriority;
       const tagMatch =
@@ -53,7 +55,7 @@ export default function RefForgeApp() {
       const searchMatch =
         searchTerm === "" ||
         ref.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ref.authors.some((author) =>
+        ref.authors.some((author: string) =>
           author.toLowerCase().includes(searchTerm.toLowerCase())
         ) ||
         ref.abstract.toLowerCase().includes(searchTerm.toLowerCase());
@@ -62,7 +64,7 @@ export default function RefForgeApp() {
     });
   }, [references, activeProjectId, activePriority, activeTags, searchTerm]);
 
-  const activeProject = projects?.find((p) => p.id === activeProjectId);
+  const activeProject = projects?.find((p: Project) => p.id === activeProjectId);
   const pageTitle = activeProject ? activeProject.name : "All References";
 
   if (loading) {
@@ -98,6 +100,7 @@ export default function RefForgeApp() {
         activePriority={activePriority}
         setActivePriority={setActivePriority}
         onAddProject={(name) => addProject({ name, color: `hsl(${Math.random() * 360}, 70%, 50%)` })}
+        onDeleteProject={deleteProject}
       />
       <SidebarInset className="flex flex-col min-h-screen">
         <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">

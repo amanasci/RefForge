@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/star-rating";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "./ui/button";
-import { MoreVertical, Trash2, Edit } from "lucide-react";
+import { MoreVertical, Trash2, Edit, CheckCircle2, Circle, RefreshCw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +55,11 @@ export function ReferenceCard({
         </div>
         <div className="p-4 flex flex-col md:flex-row items-start md:items-center gap-4 border-t md:border-t-0 md:border-l w-full md:w-auto">
           <div className="flex flex-wrap gap-2">
-            {reference.tags.slice(0, 3).map((tag) => (
+            <Badge variant={reference.status === 'Finished' ? 'default' : 'secondary'} className="flex items-center gap-1">
+                {reference.status === 'Finished' ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
+                <span>{reference.status}</span>
+            </Badge>
+            {reference.tags.slice(0, 2).map((tag) => (
               <Badge key={tag} variant="secondary">
                 {tag}
               </Badge>
@@ -70,12 +74,16 @@ export function ReferenceCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <AddReferenceDialog projects={projects} referenceToEdit={reference} onAddReference={onUpdate}>
+                <AddReferenceDialog projects={projects} referenceToEdit={reference} onUpdateReference={onUpdate}>
                   <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                     <Edit className="mr-2 h-4 w-4" />
                     <span>Edit</span>
                   </DropdownMenuItem>
                 </AddReferenceDialog>
+                <DropdownMenuItem onClick={() => onUpdate({ ...reference, status: reference.status === 'Finished' ? 'Not Finished' : 'Finished' })}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  <span>Toggle Status</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onDelete(reference.id)} className="text-destructive">
                   <Trash2 className="mr-2 h-4 w-4" />
                   <span>Delete</span>
@@ -100,12 +108,16 @@ export function ReferenceCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <AddReferenceDialog projects={projects} referenceToEdit={reference} onAddReference={onUpdate}>
+              <AddReferenceDialog projects={projects} referenceToEdit={reference} onUpdateReference={onUpdate}>
                   <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                     <Edit className="mr-2 h-4 w-4" />
                     <span>Edit</span>
                   </DropdownMenuItem>
                 </AddReferenceDialog>
+                <DropdownMenuItem onClick={() => onUpdate({ ...reference, status: reference.status === 'Finished' ? 'Not Finished' : 'Finished' })}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  <span>Toggle Status</span>
+                </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onDelete(reference.id)} className="text-destructive">
                 <Trash2 className="mr-2 h-4 w-4" />
                 <span>Delete</span>
@@ -127,6 +139,10 @@ export function ReferenceCard({
       </CardContent>
       <CardFooter className="flex flex-col items-start gap-3">
         <div className="flex flex-wrap gap-2">
+          <Badge variant={reference.status === 'Finished' ? 'default' : 'secondary'} className="flex items-center gap-1">
+              {reference.status === 'Finished' ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
+              <span>{reference.status}</span>
+          </Badge>
           {reference.tags.map((tag) => (
             <Badge key={tag} variant="secondary">
               {tag}

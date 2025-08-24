@@ -20,12 +20,23 @@ import {
   Plus,
   ChevronsRight,
   Archive,
+  X,
 } from "lucide-react";
 import { RefForgeLogo } from "@/components/icons";
 import type { Project } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Collapsible,
   CollapsibleContent,
@@ -43,6 +54,7 @@ interface AppSidebarProps {
   activePriority: number | null;
   setActivePriority: (priority: number | null) => void;
   onAddProject: (name: string) => void;
+  onDeleteProject: (id: string) => void;
 }
 
 export function AppSidebar({
@@ -55,9 +67,11 @@ export function AppSidebar({
   activePriority,
   setActivePriority,
   onAddProject,
+  onDeleteProject,
 }: AppSidebarProps) {
   const [newProjectName, setNewProjectName] = React.useState("");
   const [isAddingProject, setIsAddingProject] = React.useState(false);
+  const [projectToDelete, setProjectToDelete] = React.useState<Project | null>(null);
 
   const handleAddProject = () => {
     if (newProjectName.trim()) {
@@ -115,6 +129,7 @@ export function AppSidebar({
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddProject()}
+                  className="text-foreground"
                 />
                 <Button
                   size="sm"
@@ -127,17 +142,31 @@ export function AppSidebar({
             )}
             <SidebarMenu>
               {projects.map((project) => (
-                <SidebarMenuItem key={project.id}>
+                <SidebarMenuItem key={project.id} className="group">
                   <SidebarMenuButton
                     onClick={() => setActiveProjectId(project.id)}
                     isActive={activeProjectId === project.id}
                     tooltip={project.name}
+                    className="justify-between"
                   >
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: project.color }}
-                    />
-                    <span>{project.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: project.color }}
+                      />
+                      <span className="truncate">{project.name}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 hidden group-hover:inline-flex"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProjectToDelete(project);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -216,6 +245,32 @@ export function AppSidebar({
           </SidebarGroup>
         </ScrollArea>
       </SidebarContent>
+       <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the project &quot;{projectToDelete?.name}&quot; and all of its associated references.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (projectToDelete) {
+                  onDeleteProject(projectToDelete.id);
+                  // If the active project is the one being deleted, reset it
+                  if (activeProjectId === projectToDelete.id) {
+                    setActiveProjectId(null);
+                  }
+                }
+              }}
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sidebar>
   );
 }
