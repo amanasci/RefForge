@@ -4,6 +4,12 @@
   "productName": "RefForge",
   "version": "0.1.0",
 
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:refforge.db"]
+    }
+  },
+
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
