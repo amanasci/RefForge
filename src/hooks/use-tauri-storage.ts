@@ -3,6 +3,20 @@ import Database from '@tauri-apps/plugin-sql';
 import type { AppData, Project, Reference } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
+interface ReferenceFromDb {
+  id: string;
+  title: string;
+  authors: string; // JSON string
+  year: number;
+  journal?: string;
+  doi?: string;
+  abstract: string;
+  tags: string; // JSON string
+  priority: number;
+  project_id: string;
+  created_at: string;
+}
+
 export function useTauriStorage() {
   const db = useRef<Database | null>(null);
   const [data, setData] = useState<AppData | null>(null);
@@ -13,9 +27,10 @@ export function useTauriStorage() {
     setLoading(true);
     try {
       const projects = await db.current.select<Project[]>("SELECT * FROM projects");
-      const referencesRaw = await db.current.select<any[]>("SELECT * FROM `references`");
+      const referencesRaw = await db.current.select<ReferenceFromDb[]>("SELECT * FROM `references`");
+      console.log("referencesRaw", referencesRaw);
 
-      const references = referencesRaw.map(r => ({
+      const references: Reference[] = referencesRaw.map(r => ({
         ...r,
         authors: JSON.parse(r.authors),
         tags: JSON.parse(r.tags),
@@ -69,7 +84,19 @@ export function useTauriStorage() {
     const newReference: Reference = { ...referenceData, id: uuidv4(), createdAt: new Date().toISOString() };
     await db.current.execute(
         "INSERT INTO `references` (id, title, authors, year, journal, doi, abstract, tags, priority, project_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
-        [newReference.id, newReference.title, JSON.stringify(newReference.authors), newReference.year, newReference.journal, newReference.doi, newReference.abstract, JSON.stringify(newReference.tags), newReference.priority, newReference.projectId, newReference.createdAt]
+        [
+            newReference.id,
+            newReference.title,
+            JSON.stringify(newReference.authors),
+            newReference.year,
+            newReference.journal,
+            newReference.doi,
+            newReference.abstract,
+            JSON.stringify(newReference.tags),
+            newReference.priority,
+            newReference.projectId,
+            newReference.createdAt,
+        ]
     );
     await refreshData();
   }, [refreshData]);
@@ -78,7 +105,19 @@ export function useTauriStorage() {
     if (!db.current) return;
     await db.current.execute(
         "UPDATE `references` SET title = $1, authors = $2, year = $3, journal = $4, doi = $5, abstract = $6, tags = $7, priority = $8, project_id = $9, created_at = $10 WHERE id = $11",
-        [reference.title, JSON.stringify(reference.authors), reference.year, reference.journal, reference.doi, reference.abstract, JSON.stringify(reference.tags), reference.priority, reference.projectId, reference.createdAt, reference.id]
+        [
+            reference.title,
+            JSON.stringify(reference.authors),
+            reference.year,
+            reference.journal,
+            reference.doi,
+            reference.abstract,
+            JSON.stringify(reference.tags),
+            reference.priority,
+            reference.projectId,
+            reference.createdAt,
+            reference.id,
+        ]
     );
     await refreshData();
   }, [refreshData]);
