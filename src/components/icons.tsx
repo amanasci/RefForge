@@ -6,19 +6,39 @@ export function RefForgeLogo(props: SVGProps<SVGSVGElement>) {
       xmlns="http://www.w3.org/2000/svg"
       width="1em"
       height="1em"
-      viewBox="0 0 24 24"
+      viewBox="0 0 800 800"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="24"
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}
     >
-      <path d="M3.5 7.5L12 3l8.5 4.5" />
-      <path d="M3.5 7.5v9L12 21l8.5-4.5v-9" />
-      <path d="M12 12.5L3.5 8 12 3l8.5 5L12 12.5" />
-      <path d="M12 12.5V21" />
-      <path d="M18 10l-6 3-6-3" />
+      <g transform="translate(0, 200)">
+        {/* Left hexagon (flat-top) */}
+        <polygon
+          points="
+            390,200
+            325,310
+            195,310
+            130,200
+            195,90
+            325,90
+          "
+        />
+
+        {/* Right hexagon (flat-top) */}
+        <polygon
+          points="
+            670,200
+            605,310
+            475,310
+            410,200
+            475,90
+            605,90
+          "
+        />
+      </g>
     </svg>
   );
 }
