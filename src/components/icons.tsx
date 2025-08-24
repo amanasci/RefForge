@@ -6,7 +6,7 @@ export function RefForgeLogo(props: SVGProps<SVGSVGElement>) {
       xmlns="http://www.w3.org/2000/svg"
       width="1em"
       height="1em"
-      viewBox="0 0 800 400"
+      viewBox="0 0 800 800"
       fill="none"
       stroke="currentColor"
       strokeWidth="24"
@@ -14,7 +14,7 @@ export function RefForgeLogo(props: SVGProps<SVGSVGElement>) {
       strokeLinejoin="round"
       {...props}
     >
-      <g>
+      <g transform="translate(0, 200)">
         {/* Left hexagon (flat-top) */}
         <polygon
           points="
