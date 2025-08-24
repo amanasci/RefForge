@@ -5,6 +5,9 @@ import { Toaster } from "@/components/ui/toaster"
 export const metadata: Metadata = {
   title: 'RefForge',
   description: 'A modern, cool-looking cross-platform desktop reference manager.',
+  icons: {
+    icon: '/logo.svg',
+  },
 };
 
 export default function RootLayout({
