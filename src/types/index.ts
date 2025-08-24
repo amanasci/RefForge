@@ -18,3 +18,8 @@ export interface Project {
   name: string;
   color: string;
 }
+
+export interface AppData {
+  projects: Project[];
+  references: Reference[];
+}

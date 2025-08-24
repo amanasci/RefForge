@@ -57,7 +57,7 @@ export function useTauriStorage() {
       // Add status column to references table if it doesn't exist
       try {
         await db.current.execute("ALTER TABLE `references` ADD COLUMN status TEXT NOT NULL DEFAULT 'Not Finished'");
-      } catch (e) {
+      } catch (e: any) {
         // Ignore error if column already exists
         if (!e.message?.includes('duplicate column name')) {
             console.error('Failed to alter `references` table:', e);

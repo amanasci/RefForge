@@ -69,7 +69,6 @@ export function AppSidebar({
   setActivePriority,
   onAddProject,
   onDeleteProject,
-  onDeleteProject,
 }: AppSidebarProps) {
   const [newProjectName, setNewProjectName] = React.useState("");
   const [isAddingProject, setIsAddingProject] = React.useState(false);
@@ -254,7 +253,7 @@ export function AppSidebar({
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the project "{projectToDelete?.name}" and all of its associated references.
+              This action cannot be undone. This will permanently delete the project &quot;{projectToDelete?.name}&quot; and all of its associated references.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

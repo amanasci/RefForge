@@ -74,7 +74,7 @@ export function ReferenceCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <AddReferenceDialog projects={projects} referenceToEdit={reference} onAddReference={onUpdate}>
+                <AddReferenceDialog projects={projects} referenceToEdit={reference} onUpdateReference={onUpdate}>
                   <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                     <Edit className="mr-2 h-4 w-4" />
                     <span>Edit</span>
@@ -108,7 +108,7 @@ export function ReferenceCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <AddReferenceDialog projects={projects} referenceToEdit={reference} onAddReference={onUpdate}>
+              <AddReferenceDialog projects={projects} referenceToEdit={reference} onUpdateReference={onUpdate}>
                   <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                     <Edit className="mr-2 h-4 w-4" />
                     <span>Edit</span>

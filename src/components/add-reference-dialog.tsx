@@ -55,7 +55,8 @@ type ReferenceFormValues = z.infer<typeof referenceSchema>;
 interface AddReferenceDialogProps {
   children: React.ReactNode;
   projects: Project[];
-  onAddReference: (data: Omit<Reference, "id" | "createdAt">) => void;
+  onAddReference?: (data: Omit<Reference, "id" | "createdAt">) => void;
+  onUpdateReference?: (data: Reference) => void;
   referenceToEdit?: Reference;
 }
 
@@ -63,11 +64,12 @@ export function AddReferenceDialog({
   children,
   projects,
   onAddReference,
+  onUpdateReference,
   referenceToEdit,
 }: AddReferenceDialogProps) {
   const [open, setOpen] = React.useState(false);
 
-  const defaultValues = React.useMemo(() => {
+  const defaultValues: Partial<ReferenceFormValues> = React.useMemo(() => {
     return referenceToEdit ? {
       title: referenceToEdit.title,
       authors: referenceToEdit.authors.join(', '),
@@ -108,9 +110,9 @@ export function AddReferenceDialog({
       authors: data.authors.split(",").map((a) => a.trim()),
       tags: data.tags ? data.tags.split(",").map((t) => t.trim()) : [],
     };
-    if (referenceToEdit) {
-      onAddReference({ ...referenceToEdit, ...processedData });
-    } else {
+    if (referenceToEdit && onUpdateReference) {
+      onUpdateReference({ ...referenceToEdit, ...processedData });
+    } else if (onAddReference) {
       onAddReference(processedData as Omit<Reference, "id" | "createdAt">);
     }
     setOpen(false);
