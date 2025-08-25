@@ -181,7 +181,7 @@ export function AddReferenceDialog({
   ): Promise<Partial<Reference>> => {
     const arxivId = doi.substring(doi.toLowerCase().indexOf("arxiv.") + 6);
     const response = await fetch(
-      `http://export.arxiv.org/api/query?id_list=${arxivId}`
+      `https://export.arxiv.org/api/query?id_list=${arxivId}`
     );
     if (!response.ok) {
       throw new Error("Failed to fetch from arXiv");
