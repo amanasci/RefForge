@@ -27,6 +27,9 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+      - name: Rust target for Windows ARM64
+        if: matrix.args == '--target aarch64-pc-windows-msvc'
+        run: rustup target add aarch64-pc-windows-msvc
 
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
