@@ -12,6 +12,7 @@ RefForge is a sleek and powerful reference manager built with Next.js and Tauri,
 - [x] Feature 3: Delete a reference
 - [ ] Feature 4: Search for a reference
 - [ ] Feature 5: Export references
+- [ ] Feature 6: Import Reference from arxiv 
 
 ## Prerequisites
 
