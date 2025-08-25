@@ -5,6 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
+import { XMLParser } from "fast-xml-parser";
 import type { Project, Reference } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -118,6 +119,93 @@ export function AddReferenceDialog({
     setOpen(false);
   };
 
+  const handleFetchMetadata = async () => {
+    const doi = form.getValues("doi");
+    if (!doi) return;
+
+    try {
+      let metadata;
+      if (doi.toLowerCase().includes("arxiv")) {
+        metadata = await fetchArxivMetadata(doi);
+      } else {
+        metadata = await fetchCrossRefMetadata(doi);
+      }
+
+      if (metadata) {
+        form.setValue("title", metadata.title ?? "");
+        form.setValue("authors", (metadata.authors ?? []).join(", "));
+        form.setValue("year", metadata.year ?? new Date().getFullYear());
+        form.setValue("journal", metadata.journal || "");
+        form.setValue("abstract", metadata.abstract ?? "");
+      }
+    } catch (error) {
+      console.error("Failed to fetch metadata:", error);
+      // Here you could use the useToast hook to show an error message
+    }
+  };
+
+  const fetchCrossRefMetadata = async (
+    doi: string
+  ): Promise<Partial<Reference>> => {
+    const response = await fetch(`https://api.crossref.org/works/${doi}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch from CrossRef");
+    }
+    const data = await response.json();
+    const item = data.message;
+
+    const year =
+      item["published-print"]?.["date-parts"]?.[0]?.[0] ||
+      item["published-online"]?.["date-parts"]?.[0]?.[0] ||
+      new Date().getFullYear();
+
+    return {
+      title: item.title?.[0] || "No title found",
+      authors:
+        item.author?.map(
+          (a: { given: string; family: string }) => `${a.given} ${a.family}`
+        ) || [],
+      year: year,
+      journal: item["container-title"]?.[0] || "",
+      doi: item.DOI,
+      abstract: item.abstract
+        ? // TODO: this is ugly, abstracts in crossref are behind a paywall and returned as html
+          new DOMParser().parseFromString(item.abstract, "text/html")
+            .documentElement.textContent || ""
+        : "",
+    };
+  };
+
+  const fetchArxivMetadata = async (
+    doi: string
+  ): Promise<Partial<Reference>> => {
+    const arxivId = doi.substring(doi.toLowerCase().indexOf("arxiv.") + 6);
+    const response = await fetch(
+      `http://export.arxiv.org/api/query?id_list=${arxivId}`
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch from arXiv");
+    }
+    const xmlData = await response.text();
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: "@_",
+    });
+    const jsonData = parser.parse(xmlData);
+    const entry = jsonData.feed.entry;
+
+    return {
+      title: entry.title.replace(/\s+/g, " "),
+      authors: Array.isArray(entry.author)
+        ? entry.author.map((a: { name: string }) => a.name)
+        : [entry.author.name],
+      year: new Date(entry.published).getFullYear(),
+      journal: entry["arxiv:journal_ref"] || "",
+      doi: doi,
+      abstract: entry.summary.replace(/\s+/g, " "),
+    };
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -224,9 +312,23 @@ export function AddReferenceDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>DOI</FormLabel>
-                    <FormControl>
-                      <Input placeholder="10.1000/xyz123" {...field} />
-                    </FormControl>
+                    <div className="flex items-center gap-2">
+                      <FormControl>
+                        <Input
+                          placeholder="10.1000/xyz123"
+                          {...field}
+                          className="flex-1"
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleFetchMetadata}
+                        disabled={!form.watch("doi")}
+                      >
+                        Fetch Metadata
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
