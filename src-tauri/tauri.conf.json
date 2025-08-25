@@ -24,8 +24,9 @@
         "fullscreen": false,
         "height": 600,
         "resizable": true,
-        "title": "nextn",
-        "width": 800
+        "title": "RefForge",
+        "width": 800,
+        "decorations": false
       }
     ],
     "security": {
