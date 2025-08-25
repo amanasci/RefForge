@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/logo.svg" alt="RefForge Logo" width="200" height="200">
+  <img src="docs/logo_bkg.svg" alt="RefForge Logo" width="200" height="200">
   <h1>RefForge</h1>
 </div>
 
