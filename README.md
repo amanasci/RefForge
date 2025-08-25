@@ -1,6 +1,17 @@
-# Firebase Studio with Tauri
+<div align="center">
+  <img src="docs/logo.svg" alt="RefForge Logo" width="200" height="200">
+  <h1>RefForge</h1>
+</div>
 
-This is a Next.js starter project that has been configured to build as a desktop application using Tauri.
+RefForge is a sleek and powerful reference manager built with Next.js and Tauri, designed to help you organize, and cite your research materials with ease.
+
+## TODO
+
+- [x] Feature 1: Add a new reference
+- [x] Feature 2: Edit a reference
+- [x] Feature 3: Delete a reference
+- [ ] Feature 4: Search for a reference
+- [ ] Feature 5: Export references
 
 ## Prerequisites
 
