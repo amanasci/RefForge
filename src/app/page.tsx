@@ -5,12 +5,10 @@ import { useTauriStorage } from "@/hooks/use-tauri-storage";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ReferenceList } from "@/components/reference-list";
 import { Project, Reference } from "@/types";
-import { AddReferenceDialog } from "@/components/add-reference-dialog";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, PlusCircle, LayoutGrid, List } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/page-header";
+import { useFilteredReferences } from "@/hooks/use-filtered-references";
+import { LoadingSkeleton } from "@/components/loading-skeleton";
 
 export default function RefForgeApp() {
   const {
@@ -18,6 +16,7 @@ export default function RefForgeApp() {
     loading,
     addProject,
     deleteProject,
+    updateProject,
     addReference,
     deleteReference,
     updateReference,
@@ -44,48 +43,19 @@ export default function RefForgeApp() {
     );
   };
 
-  const filteredReferences = React.useMemo(() => {
-    if (!references) return [];
-    return references.filter((ref: Reference) => {
-      const projectMatch = !activeProjectId || ref.projectId === activeProjectId;
-      const priorityMatch = !activePriority || ref.priority === activePriority;
-      const tagMatch =
-        activeTags.length === 0 ||
-        activeTags.every((tag) => ref.tags.includes(tag));
-      const searchMatch =
-        searchTerm === "" ||
-        ref.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ref.authors.some((author: string) =>
-          author.toLowerCase().includes(searchTerm.toLowerCase())
-        ) ||
-        ref.abstract.toLowerCase().includes(searchTerm.toLowerCase());
-
-      return projectMatch && priorityMatch && tagMatch && searchMatch;
-    });
-  }, [references, activeProjectId, activePriority, activeTags, searchTerm]);
+  const filteredReferences = useFilteredReferences(
+    references,
+    activeProjectId,
+    activePriority,
+    activeTags,
+    searchTerm
+  );
 
   const activeProject = projects?.find((p: Project) => p.id === activeProjectId);
   const pageTitle = activeProject ? activeProject.name : "All References";
 
   if (loading) {
-    return (
-      <div className="flex h-screen w-full">
-        <div className="w-64 border-r p-4">
-          <Skeleton className="h-8 w-3/4 mb-4" />
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-5/6" />
-        </div>
-        <div className="flex-1 p-4">
-          <Skeleton className="h-8 w-1/4 mb-4" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   return (
@@ -99,53 +69,20 @@ export default function RefForgeApp() {
         toggleTag={toggleTag}
         activePriority={activePriority}
         setActivePriority={setActivePriority}
-        onAddProject={(name) => addProject({ name, color: `hsl(${Math.random() * 360}, 70%, 50%)` })}
+        onAddProject={addProject}
+        onUpdateProject={updateProject}
         onDeleteProject={deleteProject}
       />
       <SidebarInset className="flex flex-col min-h-screen">
-        <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-          <h1 className="text-2xl font-headline font-bold text-primary">
-            {pageTitle}
-          </h1>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search references..."
-                className="pl-9 w-48 md:w-64"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-1 p-1 rounded-md bg-muted">
-              <Button
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setViewMode("grid")}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-            <AddReferenceDialog
-              projects={projects}
-              onAddReference={addReference}
-            >
-              <Button>
-                <PlusCircle />
-                <span>Add Reference</span>
-              </Button>
-            </AddReferenceDialog>
-          </div>
-        </header>
+        <PageHeader
+          pageTitle={pageTitle}
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          projects={projects}
+          onAddReference={addReference}
+        />
         <main className="flex-1 p-4 md:p-6 overflow-y-auto">
           <ReferenceList
             references={filteredReferences}
