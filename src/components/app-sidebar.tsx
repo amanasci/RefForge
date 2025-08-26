@@ -52,7 +52,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { ColorPicker, COLORS } from "./ui/color-picker";
+import { ColorPicker } from "./ui/color-picker";
 
 interface AppSidebarProps {
   projects: Project[];
@@ -83,7 +83,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   // Add Project State
   const [newProjectName, setNewProjectName] = React.useState("");
-  const [newProjectColor, setNewProjectColor] = React.useState(COLORS[0]);
+  const [newProjectColor, setNewProjectColor] = React.useState("#ef4444");
   const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = React.useState(false);
 
   // Edit Project State
@@ -101,7 +101,7 @@ export function AppSidebar({
     if (newProjectName.trim()) {
       onAddProject({ name: newProjectName.trim(), color: newProjectColor });
       setNewProjectName("");
-      setNewProjectColor(COLORS[0]);
+      setNewProjectColor("#ef4444");
       setIsAddProjectDialogOpen(false);
     }
   };
