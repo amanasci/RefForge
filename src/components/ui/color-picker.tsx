@@ -2,12 +2,9 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
-
-export const COLORS = [
-  "#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e", "#14b8a6",
-  "#0ea5e9", "#3b82f6", "#8b5cf6", "#d946ef", "#ec4899", "#78716c"
-];
+import { Paintbrush } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sketch } from "@uiw/react-color";
 
 interface ColorPickerProps {
   value: string;
@@ -17,22 +14,29 @@ interface ColorPickerProps {
 
 export function ColorPicker({ value, onChange, className }: ColorPickerProps) {
   return (
-    <div className={cn("grid grid-cols-6 gap-2", className)}>
-      {COLORS.map((color) => (
+    <Popover>
+      <PopoverTrigger asChild>
         <button
-          key={color}
           type="button"
           className={cn(
             "h-8 w-8 rounded-full border flex items-center justify-center transition-transform transform hover:scale-110",
-            value === color && "ring-2 ring-ring ring-offset-2 ring-offset-background"
+            className
           )}
-          style={{ backgroundColor: color }}
-          onClick={() => onChange(color)}
-          aria-label={`Select color ${color}`}
+          style={{ backgroundColor: value }}
+          aria-label="Select color"
         >
-          {value === color && <Check className="h-5 w-5 text-white mix-blend-difference" />}
+          <Paintbrush className="h-5 w-5 text-white mix-blend-difference" />
         </button>
-      ))}
-    </div>
+      </PopoverTrigger>
+      <PopoverContent className="p-0">
+        <Sketch
+          style={{ marginLeft: 20 }}
+          color={value}
+          onChange={(color) => {
+            onChange(color.hex);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
