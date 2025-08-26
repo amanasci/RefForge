@@ -20,6 +20,7 @@ import {
   ChevronsRight,
   Archive,
   X,
+  Edit,
 } from "lucide-react";
 import { RefForgeLogo } from "@/components/icons";
 import type { Project } from "@/types";
@@ -50,6 +51,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "./ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { ColorPicker, COLORS } from "./ui/color-picker";
 
 interface AppSidebarProps {
   projects: Project[];
@@ -60,7 +63,8 @@ interface AppSidebarProps {
   toggleTag: (tag: string) => void;
   activePriority: number | null;
   setActivePriority: (priority: number | null) => void;
-  onAddProject: (name: string) => void;
+  onAddProject: (project: { name: string; color: string }) => void;
+  onUpdateProject: (project: Project) => void;
   onDeleteProject: (id: string) => void;
 }
 
@@ -74,19 +78,48 @@ export function AppSidebar({
   activePriority,
   setActivePriority,
   onAddProject,
+  onUpdateProject,
   onDeleteProject,
 }: AppSidebarProps) {
+  // Add Project State
   const [newProjectName, setNewProjectName] = React.useState("");
+  const [newProjectColor, setNewProjectColor] = React.useState(COLORS[0]);
   const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = React.useState(false);
-  const [projectToDelete, setProjectToDelete] = React.useState<Project | null>(
-    null
-  );
+
+  // Edit Project State
+  const [projectToEdit, setProjectToEdit] = React.useState<Project | null>(null);
+  const [editingProjectName, setEditingProjectName] = React.useState("");
+  const [editingProjectColor, setEditingProjectColor] = React.useState("");
+
+  // Delete Project State
+  const [projectToDelete, setProjectToDelete] = React.useState<Project | null>(null);
+
+  // Tag Search State
+  const [tagSearch, setTagSearch] = React.useState("");
 
   const handleAddProject = () => {
     if (newProjectName.trim()) {
-      onAddProject(newProjectName.trim());
+      onAddProject({ name: newProjectName.trim(), color: newProjectColor });
       setNewProjectName("");
+      setNewProjectColor(COLORS[0]);
       setIsAddProjectDialogOpen(false);
+    }
+  };
+
+  const handleOpenEditDialog = (project: Project) => {
+    setProjectToEdit(project);
+    setEditingProjectName(project.name);
+    setEditingProjectColor(project.color);
+  };
+
+  const handleUpdateProject = () => {
+    if (projectToEdit && editingProjectName.trim()) {
+      onUpdateProject({
+        ...projectToEdit,
+        name: editingProjectName.trim(),
+        color: editingProjectColor,
+      });
+      setProjectToEdit(null);
     }
   };
 
@@ -141,13 +174,17 @@ export function AppSidebar({
                     <DialogHeader>
                       <DialogTitle>Add New Project</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       <Input
                         id="new-project-name"
                         placeholder="Enter project name..."
                         value={newProjectName}
                         onChange={(e) => setNewProjectName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleAddProject()}
+                      />
+                      <ColorPicker
+                        value={newProjectColor}
+                        onChange={setNewProjectColor}
                       />
                     </div>
                     <DialogFooter>
@@ -178,17 +215,30 @@ export function AppSidebar({
                         />
                         <span className="truncate">{project.name}</span>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5 hidden group-hover:inline-flex"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setProjectToDelete(project);
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+                      <div className="hidden group-hover:flex items-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEditDialog(project);
+                          }}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProjectToDelete(project);
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -208,20 +258,34 @@ export function AppSidebar({
                     <ChevronsRight className="h-4 w-4 transition-transform [&[data-state=open]]:rotate-90" />
                   </SidebarGroupLabel>
                 </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="p-2 flex flex-wrap gap-1">
-                    {allTags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant={
-                          activeTags.includes(tag) ? "default" : "outline"
-                        }
-                        onClick={() => toggleTag(tag)}
-                        className="cursor-pointer text-xs"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
+                <CollapsibleContent className="p-2 space-y-2">
+                  <Input
+                    placeholder="Search tags..."
+                    value={tagSearch}
+                    onChange={(e) => setTagSearch(e.target.value)}
+                    className="h-8"
+                  />
+                  <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                    {allTags
+                      .filter((tag) =>
+                        tag.toLowerCase().includes(tagSearch.toLowerCase())
+                      )
+                      .map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant={
+                            activeTags.includes(tag) ? "default" : "outline"
+                          }
+                          onClick={() => toggleTag(tag)}
+                          className={cn(
+                            "cursor-pointer text-xs",
+                            !activeTags.includes(tag) &&
+                              "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent"
+                          )}
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
@@ -274,6 +338,36 @@ export function AppSidebar({
           </ScrollArea>
         </SidebarContent>
       </Sidebar>
+
+      {/* Edit Project Dialog */}
+      <Dialog open={!!projectToEdit} onOpenChange={(open) => !open && setProjectToEdit(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              id="editing-project-name"
+              placeholder="Enter project name..."
+              value={editingProjectName}
+              onChange={(e) => setEditingProjectName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleUpdateProject()}
+            />
+            <ColorPicker
+              value={editingProjectColor}
+              onChange={setEditingProjectColor}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProjectToEdit(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateProject}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Project Dialog */}
       <AlertDialog
         open={!!projectToDelete}
         onOpenChange={(open) => !open && setProjectToDelete(null)}

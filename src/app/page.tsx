@@ -16,6 +16,7 @@ export default function RefForgeApp() {
     loading,
     addProject,
     deleteProject,
+    updateProject,
     addReference,
     deleteReference,
     updateReference,
@@ -68,7 +69,8 @@ export default function RefForgeApp() {
         toggleTag={toggleTag}
         activePriority={activePriority}
         setActivePriority={setActivePriority}
-        onAddProject={(name) => addProject({ name, color: `hsl(${Math.random() * 360}, 70%, 50%)` })}
+        onAddProject={addProject}
+        onUpdateProject={updateProject}
         onDeleteProject={deleteProject}
       />
       <SidebarInset className="flex flex-col min-h-screen">
