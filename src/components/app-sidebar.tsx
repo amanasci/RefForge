@@ -5,7 +5,6 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarFooter,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -37,6 +36,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Collapsible,
   CollapsibleContent,
@@ -70,187 +77,214 @@ export function AppSidebar({
   onDeleteProject,
 }: AppSidebarProps) {
   const [newProjectName, setNewProjectName] = React.useState("");
-  const [isAddingProject, setIsAddingProject] = React.useState(false);
-  const [projectToDelete, setProjectToDelete] = React.useState<Project | null>(null);
+  const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = React.useState(false);
+  const [projectToDelete, setProjectToDelete] = React.useState<Project | null>(
+    null
+  );
 
   const handleAddProject = () => {
     if (newProjectName.trim()) {
       onAddProject(newProjectName.trim());
       setNewProjectName("");
-      setIsAddingProject(false);
+      setIsAddProjectDialogOpen(false);
     }
   };
 
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <div className="flex items-center gap-2">
-          <RefForgeLogo className="w-8 h-8 text-primary-foreground" />
-          <h1 className="text-xl font-headline font-bold text-primary-foreground">
-            RefForge
-          </h1>
-        </div>
-      </SidebarHeader>
+    <>
+      <Sidebar>
+        <SidebarHeader>
+          <div className="flex items-center gap-2">
+            <RefForgeLogo className="w-8 h-8 text-primary-foreground" />
+            <h1 className="text-xl font-headline font-bold text-primary-foreground">
+              RefForge
+            </h1>
+          </div>
+        </SidebarHeader>
 
-      <SidebarContent>
-        <ScrollArea className="h-full">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => setActiveProjectId(null)}
-                isActive={activeProjectId === null}
-                tooltip="All References"
-              >
-                <Archive />
-                <span>All References</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-
-          <SidebarGroup>
-            <SidebarGroupLabel className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Folder />
-                <span>Projects</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => setIsAddingProject(!isAddingProject)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </SidebarGroupLabel>
-            {isAddingProject && (
-              <div className="p-2 space-y-2">
-                <Input
-                  placeholder="New project name..."
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddProject()}
-                  className="text-foreground"
-                />
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={handleAddProject}
-                >
-                  Add Project
-                </Button>
-              </div>
-            )}
+        <SidebarContent>
+          <ScrollArea className="h-full px-2">
             <SidebarMenu>
-              {projects.map((project) => (
-                <SidebarMenuItem key={project.id} className="group">
-                  <SidebarMenuButton
-                    onClick={() => setActiveProjectId(project.id)}
-                    isActive={activeProjectId === project.id}
-                    tooltip={project.name}
-                    className="justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: project.color }}
-                      />
-                      <span className="truncate">{project.name}</span>
-                    </div>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveProjectId(null)}
+                  isActive={activeProjectId === null}
+                  tooltip="All References"
+                >
+                  <Archive className="h-4 w-4" />
+                  <span>All References</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+
+            <SidebarGroup>
+              <SidebarGroupLabel className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Folder className="h-4 w-4" />
+                  <span>Projects</span>
+                </div>
+                <Dialog
+                  open={isAddProjectDialogOpen}
+                  onOpenChange={setIsAddProjectDialogOpen}
+                >
+                  <DialogTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-5 w-5 hidden group-hover:inline-flex"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setProjectToDelete(project);
-                      }}
+                      className="h-6 w-6"
+                      aria-label="Add Project"
                     >
-                      <X className="h-3 w-3" />
+                      <Plus className="h-4 w-4" />
                     </Button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-
-          <SidebarSeparator />
-
-          <SidebarGroup>
-            <Collapsible>
-              <CollapsibleTrigger className="w-full">
-                <SidebarGroupLabel className="w-full justify-between cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <Tag />
-                    <span>Tags</span>
-                  </div>
-                  <ChevronsRight className="h-4 w-4 transition-transform [&[data-state=open]]:rotate-90" />
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="p-2 flex flex-wrap gap-2">
-                  {allTags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant={
-                        activeTags.includes(tag) ? "default" : "secondary"
-                      }
-                      onClick={() => toggleTag(tag)}
-                      className="cursor-pointer"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-
-          <SidebarSeparator />
-
-          <SidebarGroup>
-            <Collapsible>
-              <CollapsibleTrigger className="w-full">
-                <SidebarGroupLabel className="w-full justify-between cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <Star />
-                    <span>Priority</span>
-                  </div>
-                  <ChevronsRight className="h-4 w-4 transition-transform [&[data-state=open]]:rotate-90" />
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenu>
-                  {[5, 4, 3, 2, 1].map((p) => (
-                    <SidebarMenuItem key={p}>
-                      <SidebarMenuButton
-                        onClick={() =>
-                          setActivePriority(activePriority === p ? null : p)
-                        }
-                        isActive={activePriority === p}
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Project</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                      <Input
+                        id="new-project-name"
+                        placeholder="Enter project name..."
+                        value={newProjectName}
+                        onChange={(e) => setNewProjectName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAddProject()}
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsAddProjectDialogOpen(false)}
                       >
-                        <div className="flex items-center">
-                          {[...Array(p)].map((_, i) => (
-                            <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                          ))}
-                           {[...Array(5-p)].map((_, i) => (
-                            <Star key={i} className="w-4 h-4 text-sidebar-foreground/20" />
-                          ))}
-                        </div>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        </ScrollArea>
-      </SidebarContent>
-       <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleAddProject}>Add Project</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </SidebarGroupLabel>
+              <SidebarMenu>
+                {projects.map((project) => (
+                  <SidebarMenuItem key={project.id} className="group">
+                    <SidebarMenuButton
+                      onClick={() => setActiveProjectId(project.id)}
+                      isActive={activeProjectId === project.id}
+                      tooltip={project.name}
+                      className="justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: project.color }}
+                        />
+                        <span className="truncate">{project.name}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 hidden group-hover:inline-flex"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProjectToDelete(project);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+
+            <SidebarSeparator />
+
+            <SidebarGroup>
+              <Collapsible>
+                <CollapsibleTrigger className="w-full">
+                  <SidebarGroupLabel className="w-full justify-between cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4" />
+                      <span>Tags</span>
+                    </div>
+                    <ChevronsRight className="h-4 w-4 transition-transform [&[data-state=open]]:rotate-90" />
+                  </SidebarGroupLabel>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="p-2 flex flex-wrap gap-1">
+                    {allTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant={
+                          activeTags.includes(tag) ? "default" : "outline"
+                        }
+                        onClick={() => toggleTag(tag)}
+                        className="cursor-pointer text-xs"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </SidebarGroup>
+
+            <SidebarSeparator />
+
+            <SidebarGroup>
+              <Collapsible>
+                <CollapsibleTrigger className="w-full">
+                  <SidebarGroupLabel className="w-full justify-between cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <Star className="h-4 w-4" />
+                      <span>Priority</span>
+                    </div>
+                    <ChevronsRight className="h-4 w-4 transition-transform [&[data-state=open]]:rotate-90" />
+                  </SidebarGroupLabel>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenu>
+                    {[5, 4, 3, 2, 1].map((p) => (
+                      <SidebarMenuItem key={p}>
+                        <SidebarMenuButton
+                          onClick={() =>
+                            setActivePriority(activePriority === p ? null : p)
+                          }
+                          isActive={activePriority === p}
+                        >
+                          <div className="flex items-center">
+                            {[...Array(p)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className="w-4 h-4 text-yellow-400 fill-yellow-400"
+                              />
+                            ))}
+                            {[...Array(5 - p)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className="w-4 h-4 text-sidebar-foreground/20"
+                              />
+                            ))}
+                          </div>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </CollapsibleContent>
+              </Collapsible>
+            </SidebarGroup>
+          </ScrollArea>
+        </SidebarContent>
+      </Sidebar>
+      <AlertDialog
+        open={!!projectToDelete}
+        onOpenChange={(open) => !open && setProjectToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the project &quot;{projectToDelete?.name}&quot; and all of its associated references.
+              This action cannot be undone. This will permanently delete the
+              project &quot;{projectToDelete?.name}&quot; and all of its
+              associated references.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -259,7 +293,6 @@ export function AppSidebar({
               onClick={() => {
                 if (projectToDelete) {
                   onDeleteProject(projectToDelete.id);
-                  // If the active project is the one being deleted, reset it
                   if (activeProjectId === projectToDelete.id) {
                     setActiveProjectId(null);
                   }
@@ -271,6 +304,6 @@ export function AppSidebar({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Sidebar>
+    </>
   );
 }
