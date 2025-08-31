@@ -130,7 +130,7 @@ export function AppSidebar({
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <RefForgeLogo className="w-8 h-8 text-primary-foreground" />
-            <h1 className="text-xl font-headline font-bold text-primary-foreground">
+            <h1 className="text-xl font-headline font-bold text-primary-foreground group-data-[collapsible=icon]:hidden">
               RefForge
             </h1>
           </div>
