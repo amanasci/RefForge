@@ -5,10 +5,11 @@ import { useTauriStorage } from "@/hooks/use-tauri-storage";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ReferenceList } from "@/components/reference-list";
 import { Project, Reference } from "@/types";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { PageHeader } from "@/components/page-header";
 import { useFilteredReferences } from "@/hooks/use-filtered-references";
 import { LoadingSkeleton } from "@/components/loading-skeleton";
+import { Separator } from "@/components/ui/separator";
 
 export default function RefForgeApp() {
   const {
@@ -59,7 +60,7 @@ export default function RefForgeApp() {
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <AppSidebar
         projects={projects}
         activeProjectId={activeProjectId}
@@ -74,24 +75,32 @@ export default function RefForgeApp() {
         onDeleteProject={deleteProject}
       />
       <SidebarInset className="flex flex-col min-h-screen">
-        <PageHeader
-          pageTitle={pageTitle}
-          searchTerm={searchTerm}
-          onSearchTermChange={setSearchTerm}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          projects={projects}
-          onAddReference={addReference}
-        />
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-          <ReferenceList
-            references={filteredReferences}
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur-sm">
+          <SidebarTrigger className="-ml-1 transition-colors hover:bg-accent hover:text-accent-foreground" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <h1 className="text-xl md:text-2xl font-headline font-bold text-primary truncate">
+            {pageTitle}
+          </h1>
+        </header>
+        <div className="flex flex-1 flex-col">
+          <PageHeader
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
             viewMode={viewMode}
-            onDelete={deleteReference}
-            onUpdate={updateReference}
+            onViewModeChange={setViewMode}
             projects={projects}
+            onAddReference={addReference}
           />
-        </main>
+          <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+            <ReferenceList
+              references={filteredReferences}
+              viewMode={viewMode}
+              onDelete={deleteReference}
+              onUpdate={updateReference}
+              projects={projects}
+            />
+          </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
