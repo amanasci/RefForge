@@ -10,12 +10,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { AddReferenceDialog } from "@/components/add-reference-dialog";
 import { Project, Reference } from "@/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PageHeaderProps {
-  pageTitle: string;
   searchTerm: string;
   onSearchTermChange: (term: string) => void;
   viewMode: "grid" | "list";
@@ -25,7 +25,6 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({
-  pageTitle,
   searchTerm,
   onSearchTermChange,
   viewMode,
@@ -34,6 +33,20 @@ export function PageHeader({
   onAddReference,
 }: PageHeaderProps) {
   const isMobile = useIsMobile();
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Add keyboard shortcut for search focus (Ctrl/Cmd + K)
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const viewModeIcon =
     viewMode === "grid" ? (
@@ -43,21 +56,21 @@ export function PageHeader({
     );
 
   return (
-    <header className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-10 h-16">
-      <h1 className="text-xl md:text-2xl font-headline font-bold text-primary truncate pr-4">
-        {pageTitle}
-      </h1>
-      <div className="flex items-center gap-2">
-        <div className="relative md:w-64">
+    <header className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur-sm">
+      <div className="flex items-center gap-2 flex-1">
+        <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search references..."
-            className="pl-9 w-full"
+            ref={searchInputRef}
+            placeholder="Search references... (⌘K)"
+            className="pl-9 w-full focus-visible:ring-2 focus-visible:ring-primary"
             value={searchTerm}
             onChange={(e) => onSearchTermChange(e.target.value)}
           />
         </div>
+      </div>
 
+      <div className="flex items-center gap-2">
         <AddReferenceDialog
           projects={projects}
           onAddReference={onAddReference}

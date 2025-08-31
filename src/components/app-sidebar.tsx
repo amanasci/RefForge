@@ -11,6 +11,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarSeparator,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 import {
   Folder,
@@ -125,7 +126,7 @@ export function AppSidebar({
 
   return (
     <>
-      <Sidebar>
+      <Sidebar variant="sidebar" collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <RefForgeLogo className="w-8 h-8 text-primary-foreground" />
@@ -337,6 +338,7 @@ export function AppSidebar({
             </SidebarGroup>
           </ScrollArea>
         </SidebarContent>
+        <SidebarRail />
       </Sidebar>
 
       {/* Edit Project Dialog */}
