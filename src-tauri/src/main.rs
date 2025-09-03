@@ -31,6 +31,12 @@ fn main() {
             ",
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 2,
+            description: "add_notes_to_references",
+            sql: "ALTER TABLE `references` ADD COLUMN notes TEXT;",
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

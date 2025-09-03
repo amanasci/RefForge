@@ -18,6 +18,7 @@ interface ReferenceFromDb {
   project_id: string;
   created_at: string;
   status: string;
+  notes?: string;
 }
 
 export function useTauriStorage() {
@@ -39,6 +40,7 @@ export function useTauriStorage() {
         authors: JSON.parse(r.authors || '[]'),
         tags: JSON.parse(r.tags || '[]'),
         status: (r.status || "Not Finished") as "Finished" | "Not Finished",
+        notes: r.notes || "",
       }));
 
       setData({ projects, references });
@@ -104,9 +106,9 @@ export function useTauriStorage() {
 
   const addReference = useCallback(async (referenceData: Omit<Reference, 'id' | 'createdAt'>) => {
     if (!db.current) return;
-    const newReference: Reference = { ...referenceData, id: uuidv4(), createdAt: new Date().toISOString(), status: referenceData.status || "Not Finished" };
+    const newReference: Reference = { ...referenceData, id: uuidv4(), createdAt: new Date().toISOString(), status: referenceData.status || "Not Finished", notes: referenceData.notes || "" };
     await db.current.execute(
-        "INSERT INTO `references` (id, title, authors, year, journal, doi, abstract, tags, priority, project_id, created_at, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+        "INSERT INTO `references` (id, title, authors, year, journal, doi, abstract, tags, priority, project_id, created_at, status, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
         [
             newReference.id,
             newReference.title,
@@ -120,6 +122,7 @@ export function useTauriStorage() {
             newReference.projectId,
             newReference.createdAt,
             newReference.status,
+            newReference.notes,
         ]
     );
     await refreshData();
@@ -128,7 +131,7 @@ export function useTauriStorage() {
   const updateReference = useCallback(async (reference: Reference) => {
     if (!db.current) return;
     await db.current.execute(
-        "UPDATE `references` SET title = $1, authors = $2, year = $3, journal = $4, doi = $5, abstract = $6, tags = $7, priority = $8, project_id = $9, status = $10 WHERE id = $11",
+        "UPDATE `references` SET title = $1, authors = $2, year = $3, journal = $4, doi = $5, abstract = $6, tags = $7, priority = $8, project_id = $9, status = $10, notes = $11 WHERE id = $12",
         [
             reference.title,
             JSON.stringify(reference.authors),
@@ -140,6 +143,7 @@ export function useTauriStorage() {
             reference.priority,
             reference.projectId,
             reference.status,
+            reference.notes,
             reference.id,
         ]
     );

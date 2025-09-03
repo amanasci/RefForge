@@ -49,6 +49,7 @@ const referenceSchema = z.object({
   priority: z.number().min(0).max(5),
   projectId: z.string().min(1, "Please select a project"),
   status: z.enum(["Finished", "Not Finished"]),
+  notes: z.string().optional(),
 });
 
 type ReferenceFormValues = z.infer<typeof referenceSchema>;
@@ -82,6 +83,7 @@ export function AddReferenceDialog({
       priority: referenceToEdit.priority,
       projectId: referenceToEdit.projectId,
       status: referenceToEdit.status,
+      notes: referenceToEdit.notes || "",
     } : {
       title: "",
       authors: "",
@@ -240,6 +242,23 @@ export function AddReferenceDialog({
                   <FormControl>
                     <Input
                       placeholder="Donald E. Knuth, John Doe"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Your personal notes about this reference..."
+                      className="min-h-[100px]"
                       {...field}
                     />
                   </FormControl>
