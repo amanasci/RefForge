@@ -11,6 +11,7 @@ export interface Reference {
   projectId: string;
   createdAt: string;
   status: "Finished" | "Not Finished";
+  notes?: string;
 }
 
 export interface Project {

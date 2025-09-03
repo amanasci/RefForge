@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AddReferenceDialog } from "./add-reference-dialog";
+import { useState } from "react";
 
 interface ReferenceCardProps {
   reference: Reference;
@@ -44,6 +45,7 @@ export function ReferenceCard({
   onUpdate,
   projects,
 }: ReferenceCardProps) {
+  const [isNotesExpanded, setIsNotesExpanded] = useState(false);
   const project = projects.find((p) => p.id === reference.projectId);
 
   const StatusBadge = () => (
@@ -123,6 +125,21 @@ export function ReferenceCard({
             </div>
             <CardContent className="p-0 mt-3 text-sm text-muted-foreground">
               <p className="line-clamp-2">{reference.abstract}</p>
+              {reference.notes && (
+                <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                  <p className={`text-xs ${!isNotesExpanded && "line-clamp-2"}`}>
+                    {reference.notes}
+                  </p>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 mt-1 text-xs"
+                    onClick={() => setIsNotesExpanded(!isNotesExpanded)}
+                  >
+                    {isNotesExpanded ? "Show less" : "Show more"}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </div>
 
@@ -177,6 +194,21 @@ export function ReferenceCard({
       </CardHeader>
       <CardContent className="flex-grow text-sm text-muted-foreground">
         <p className="line-clamp-4">{reference.abstract}</p>
+        {reference.notes && (
+          <div className="mt-2 p-2 bg-muted/50 rounded-md">
+            <p className={`text-xs ${!isNotesExpanded && "line-clamp-2"}`}>
+              {reference.notes}
+            </p>
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 mt-1 text-xs"
+              onClick={() => setIsNotesExpanded(!isNotesExpanded)}
+            >
+              {isNotesExpanded ? "Show less" : "Show more"}
+            </Button>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex flex-col items-start gap-3 pt-4">
         <div className="flex flex-wrap gap-2">
