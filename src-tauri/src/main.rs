@@ -26,10 +26,15 @@ fn main() {
                     priority INTEGER NOT NULL DEFAULT 0,
                     project_id TEXT NOT NULL,
                     created_at DATETIME NOT NULL,
-                    notes TEXT,
                     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
                 );
             ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 2,
+            description: "add_notes_to_references",
+            sql: "ALTER TABLE `references` ADD COLUMN notes TEXT;",
             kind: MigrationKind::Up,
         },
     ];

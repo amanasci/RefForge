@@ -65,15 +65,6 @@ export function useTauriStorage() {
             console.error('Failed to alter `references` table:', e);
         }
       }
-      // Add notes column to references table if it doesn't exist
-      try {
-        await db.current.execute("ALTER TABLE `references` ADD COLUMN notes TEXT");
-      } catch (e) {
-        // Ignore error if column already exists
-        if (!String(e).includes('duplicate column name')) {
-            console.error('Failed to alter `references` table:', e);
-        }
-      }
       await refreshData();
     } catch (error) {
       console.error("Failed to load database:", error);
