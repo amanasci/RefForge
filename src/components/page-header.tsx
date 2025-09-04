@@ -17,8 +17,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toBibTeX } from "@/lib/bibtex";
 import { useTauriStorage } from "@/hooks/use-tauri-storage";
-import { dialog } from "@tauri-apps/api";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { save } from "@tauri-apps/api/dialog";
+import { writeTextFile } from "@tauri-apps/api/fs";
 
 interface PageHeaderProps {
   searchTerm: string;
@@ -56,7 +56,7 @@ export function PageHeader({
       );
       const bibtex = toBibTeX(selected);
 
-      const filePath = await dialog.save({
+      const filePath = await save({
         title: "Save BibTeX File",
         defaultPath: "references.bib",
         filters: [
