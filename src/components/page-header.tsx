@@ -14,6 +14,11 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { AddReferenceDialog } from "@/components/add-reference-dialog";
 import { Project, Reference } from "@/types";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toBibTeX } from "@/lib/bibtex";
+import { useTauriStorage } from "@/hooks/use-tauri-storage";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 
 interface PageHeaderProps {
   searchTerm: string;
@@ -22,6 +27,9 @@ interface PageHeaderProps {
   onViewModeChange: (mode: "grid" | "list") => void;
   projects: Project[];
   onAddReference: (reference: Omit<Reference, "id" | "createdAt">) => void;
+  selectedReferences: string[];
+  onSelectAll: (selectAll: boolean) => void;
+  allReferencesCount: number;
 }
 
 export function PageHeader({
@@ -31,9 +39,42 @@ export function PageHeader({
   onViewModeChange,
   projects,
   onAddReference,
+  selectedReferences,
+  onSelectAll,
+  allReferencesCount,
 }: PageHeaderProps) {
   const isMobile = useIsMobile();
   const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const { data } = useTauriStorage();
+
+  const handleExport = async () => {
+    if (!data) return;
+
+    try {
+      const selected = data.references.filter((ref: Reference) =>
+        selectedReferences.includes(ref.id)
+      );
+      const bibtex = toBibTeX(selected);
+
+      const filePath = await save({
+        title: "Save BibTeX File",
+        defaultPath: "references.bib",
+        filters: [
+          {
+            name: "BibTeX",
+            extensions: ["bib"],
+          },
+        ],
+      });
+
+      if (filePath) {
+        await writeTextFile(filePath, bibtex);
+      }
+    } catch (err) {
+      console.error("Failed to save file:", err);
+      // Optionally, show an error message to the user
+    }
+  };
 
   // Add keyboard shortcut for search focus (Ctrl/Cmd + K)
   React.useEffect(() => {
@@ -55,9 +96,24 @@ export function PageHeader({
       <List className="h-4 w-4" />
     );
 
+  const numSelected = selectedReferences.length;
+  const allSelected = numSelected > 0 && numSelected === allReferencesCount;
+  const someSelected = numSelected > 0 && !allSelected;
+
   return (
     <header className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur-sm">
-      <div className="flex items-center gap-2 flex-1">
+      <div className="flex items-center gap-4 flex-1">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="select-all"
+            checked={allSelected}
+            onCheckedChange={(checked) => onSelectAll(!!checked)}
+            aria-label="Select all"
+          />
+          <label htmlFor="select-all" className="text-sm font-medium">
+            {numSelected > 0 ? `${numSelected} selected` : "Select All"}
+          </label>
+        </div>
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -71,6 +127,13 @@ export function PageHeader({
       </div>
 
       <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          disabled={numSelected === 0}
+          onClick={handleExport}
+        >
+          Export
+        </Button>
         <AddReferenceDialog
           projects={projects}
           onAddReference={onAddReference}

@@ -10,6 +10,8 @@ interface ReferenceListProps {
   onDelete: (id: string) => void;
   onUpdate: (reference: Reference) => void;
   projects: Project[];
+  selectedReferences: string[];
+  onToggleSelection: (id: string) => void;
 }
 
 export function ReferenceList({
@@ -17,7 +19,9 @@ export function ReferenceList({
   viewMode,
   onDelete,
   onUpdate,
-  projects
+  projects,
+  selectedReferences,
+  onToggleSelection,
 }: ReferenceListProps) {
   if (references.length === 0) {
     return (
@@ -41,13 +45,15 @@ export function ReferenceList({
       )}
     >
       {references.map((ref) => (
-        <ReferenceCard 
-          key={ref.id} 
-          reference={ref} 
+        <ReferenceCard
+          key={ref.id}
+          reference={ref}
           viewMode={viewMode}
           onDelete={onDelete}
           onUpdate={onUpdate}
           projects={projects}
+          isSelected={selectedReferences.includes(ref.id)}
+          onToggleSelection={() => onToggleSelection(ref.id)}
         />
       ))}
     </div>

@@ -30,6 +30,7 @@ export default function RefForgeApp() {
   const [activePriority, setActivePriority] = React.useState<number | null>(null);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
+  const [selectedReferences, setSelectedReferences] = React.useState<string[]>([]);
 
   const allTags = React.useMemo(() => {
     if (!references) return [];
@@ -42,6 +43,20 @@ export default function RefForgeApp() {
     setActiveTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
+  };
+
+  const toggleReferenceSelection = (id: string) => {
+    setSelectedReferences((prev) =>
+      prev.includes(id) ? prev.filter((refId) => refId !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (selectAll: boolean) => {
+    if (selectAll) {
+      setSelectedReferences(filteredReferences.map((ref) => ref.id));
+    } else {
+      setSelectedReferences([]);
+    }
   };
 
   const filteredReferences = useFilteredReferences(
@@ -90,6 +105,9 @@ export default function RefForgeApp() {
             onViewModeChange={setViewMode}
             projects={projects}
             onAddReference={addReference}
+            selectedReferences={selectedReferences}
+            onSelectAll={handleSelectAll}
+            allReferencesCount={filteredReferences.length}
           />
           <main className="flex-1 p-4 md:p-6 overflow-y-auto">
             <ReferenceList
@@ -98,6 +116,8 @@ export default function RefForgeApp() {
               onDelete={deleteReference}
               onUpdate={updateReference}
               projects={projects}
+              selectedReferences={selectedReferences}
+              onToggleSelection={toggleReferenceSelection}
             />
           </main>
         </div>

@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AddReferenceDialog } from "./add-reference-dialog";
 import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 interface ReferenceCardProps {
   reference: Reference;
@@ -36,6 +38,8 @@ interface ReferenceCardProps {
   onDelete: (id: string) => void;
   onUpdate: (reference: Reference) => void;
   projects: Project[];
+  isSelected: boolean;
+  onToggleSelection: () => void;
 }
 
 export function ReferenceCard({
@@ -44,6 +48,8 @@ export function ReferenceCard({
   onDelete,
   onUpdate,
   projects,
+  isSelected,
+  onToggleSelection,
 }: ReferenceCardProps) {
   const [isNotesExpanded, setIsNotesExpanded] = useState(false);
   const project = projects.find((p) => p.id === reference.projectId);
@@ -109,12 +115,27 @@ export function ReferenceCard({
 
   if (viewMode === "list") {
     return (
-      <Card className="w-full transition-all hover:shadow-md">
+      <Card
+        className={cn(
+          "w-full transition-all hover:shadow-md",
+          isSelected && "border-primary ring-2 ring-primary"
+        )}
+      >
         <div className="flex flex-col sm:flex-row">
-          <div className="flex-1 p-4 sm:p-6">
+          <div className="p-4 flex items-center justify-center">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onToggleSelection}
+              aria-label={`Select ${reference.title}`}
+            />
+          </div>
+          <div className="flex-1 p-4 sm:p-6 sm:pl-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <CardTitle className="text-base font-headline mb-1">
+                <CardTitle
+                  className="text-base font-headline mb-1 cursor-pointer"
+                  onClick={onToggleSelection}
+                >
                   {reference.title}
                 </CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">
@@ -173,19 +194,34 @@ export function ReferenceCard({
   }
 
   return (
-    <Card className="flex flex-col h-full transition-all hover:shadow-lg">
+    <Card
+      className={cn(
+        "flex flex-col h-full transition-all hover:shadow-lg",
+        isSelected && "border-primary ring-2 ring-primary"
+      )}
+    >
       <CardHeader>
         <div className="flex justify-between items-start">
-          {reference.priority > 0 ? (
-            <StarRating rating={reference.priority} />
-          ) : (
-            <div /> // Placeholder for alignment
-          )}
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onToggleSelection}
+              aria-label={`Select ${reference.title}`}
+            />
+            {reference.priority > 0 ? (
+              <StarRating rating={reference.priority} />
+            ) : (
+              <div /> // Placeholder for alignment
+            )}
+          </div>
           <div className="-mr-2 -mt-2">
             <ActionMenu />
           </div>
         </div>
-        <CardTitle className="text-lg font-headline pt-2 leading-tight">
+        <CardTitle
+          className="text-lg font-headline pt-2 leading-tight cursor-pointer"
+          onClick={onToggleSelection}
+        >
           {reference.title}
         </CardTitle>
         <CardDescription className="text-sm">
