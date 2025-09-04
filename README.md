@@ -19,7 +19,9 @@ A non-exhaustive list of things todo. Not in any specific priority order.
 - [ ] Feature 8: Import from a .bib file 
 - [ ] Feature 9: Vector DB (maybe) 
 - [ ] Feature 10: Sync Function (drive or maybe something else)
- 
+- [ ] Feature 11: Import from .bib file
+- [x] Feature 12: Add notes
+- [ ] Feature 13: Advanced filtering 
 
 ## Prerequisites
 
