@@ -17,8 +17,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toBibTeX } from "@/lib/bibtex";
 import { useTauriStorage } from "@/hooks/use-tauri-storage";
-import { save } from "@tauri-apps/api/dialog";
-import { writeTextFile } from "@tauri-apps/api/fs";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 
 interface PageHeaderProps {
   searchTerm: string;
