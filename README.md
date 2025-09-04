@@ -13,7 +13,7 @@ A non-exhaustive list of things todo. Not in any specific priority order.
 - [x] Feature 2: Edit a reference
 - [x] Feature 3: Delete a reference
 - [ ] Feature 4: Search for a reference
-- [ ] Feature 5: Export references
+- [x] Feature 5: Export references
 - [x] Feature 6: Import Reference from arxiv 
 - [ ] Feature 7: Export Database
 - [ ] Feature 8: Import from a .bib file 
