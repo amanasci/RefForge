@@ -17,6 +17,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toBibTeX } from "@/lib/bibtex";
 import { useTauriStorage } from "@/hooks/use-tauri-storage";
+import { dialog } from "@tauri-apps/api";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 
 interface PageHeaderProps {
   searchTerm: string;
@@ -45,21 +47,33 @@ export function PageHeader({
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const { data } = useTauriStorage();
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!data) return;
-    const selected = data.references.filter((ref: Reference) =>
-      selectedReferences.includes(ref.id)
-    );
-    const bibtex = toBibTeX(selected);
-    const blob = new Blob([bibtex], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "references.bib";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+
+    try {
+      const selected = data.references.filter((ref: Reference) =>
+        selectedReferences.includes(ref.id)
+      );
+      const bibtex = toBibTeX(selected);
+
+      const filePath = await dialog.save({
+        title: "Save BibTeX File",
+        defaultPath: "references.bib",
+        filters: [
+          {
+            name: "BibTeX",
+            extensions: ["bib"],
+          },
+        ],
+      });
+
+      if (filePath) {
+        await writeTextFile(filePath, bibtex);
+      }
+    } catch (err) {
+      console.error("Failed to save file:", err);
+      // Optionally, show an error message to the user
+    }
   };
 
   // Add keyboard shortcut for search focus (Ctrl/Cmd + K)

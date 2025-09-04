@@ -217,28 +217,28 @@ export function AppSidebar({
                         <span className="truncate">{project.name}</span>
                       </div>
                       <div className="hidden group-hover:flex items-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5"
+                        <div
+                          role="button"
+                          aria-label="Edit project"
+                          className="p-1 rounded-md hover:bg-sidebar-accent"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenEditDialog(project);
                           }}
                         >
                           <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5"
+                        </div>
+                        <div
+                          role="button"
+                          aria-label="Delete project"
+                          className="p-1 rounded-md hover:bg-sidebar-accent"
                           onClick={(e) => {
                             e.stopPropagation();
                             setProjectToDelete(project);
                           }}
                         >
                           <X className="h-3 w-3" />
-                        </Button>
+                        </div>
                       </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
