@@ -26,7 +26,7 @@
         "resizable": true,
         "title": "RefForge",
         "width": 800,
-        "decorations": false
+        "decorations": true
       }
     ],
     "security": {
