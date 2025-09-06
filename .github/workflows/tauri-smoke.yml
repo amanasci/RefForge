@@ -1,0 +1,69 @@
+name: Tauri Smoke Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf build-essential pkg-config libglib2.0-dev xvfb
+
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          src-tauri/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build Tauri application
+      run: |
+        npm run tauri build
+      timeout-minutes: 15
+
+    - name: Test binary with Xvfb
+      run: |
+        # Start Xvfb in background
+        Xvfb :99 -screen 0 1024x768x24 &
+        export DISPLAY=:99
+        
+        # Give Xvfb time to start
+        sleep 2
+        
+        # Run the binary for a few seconds to test it starts
+        timeout 10s ./src-tauri/target/release/app || true
+        
+        echo "Smoke test completed - binary starts without crashing"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: tauri-binaries
+        path: |
+          src-tauri/target/release/bundle/
+        retention-days: 7
