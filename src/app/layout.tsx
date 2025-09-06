@@ -1,7 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { ThemeManager } from "@/components/theme-manager";
 
 export const metadata: Metadata = {
   title: 'RefForge',

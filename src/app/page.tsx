@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { getSettings, onSettingsUpdate } from "@/lib/settings";
 import { useTauriStorage } from "@/hooks/use-tauri-storage";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ReferenceList } from "@/components/reference-list";
@@ -31,6 +32,46 @@ export default function RefForgeApp() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
   const [selectedReferences, setSelectedReferences] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    const applyTheme = (theme: string) => {
+      const root = window.document.documentElement;
+      root.classList.remove("light", "dark");
+      if (theme === "system") {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+        root.classList.add(systemTheme);
+      } else {
+        root.classList.add(theme);
+      }
+    };
+
+    getSettings().then(settings => {
+      if (settings) {
+        applyTheme(settings.theme);
+      }
+    });
+
+    const unlisten = onSettingsUpdate(settings => {
+      applyTheme(settings.theme);
+    });
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+        getSettings().then(settings => {
+            if (settings && settings.theme === 'system') {
+                applyTheme('system');
+            }
+        });
+    };
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      unlisten.then(f => f());
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
 
   const allTags = React.useMemo(() => {
     if (!references) return [];

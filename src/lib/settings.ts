@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
+import { open, alert } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
 import { join } from '@tauri-apps/api/path';
 
@@ -45,9 +45,14 @@ export const chooseDbPath = async (): Promise<string | null> => {
     title: 'Select Database Folder'
   });
 
-  if (typeof selectedPath === 'string') {
-    return await join(selectedPath, DB_FILENAME);
+  await alert(`Selected path: ${JSON.stringify(selectedPath)}`);
+
+  if (typeof selectedPath === 'string' && selectedPath) {
+    const finalPath = await join(selectedPath, DB_FILENAME);
+    await alert(`Final path: ${finalPath}`);
+    return finalPath;
   }
+  await alert('No path selected or path is invalid.');
   return null;
 };
 
