@@ -21,6 +21,7 @@
     "sql:default",
     "sql:allow-execute",
     "dialog:allow-save",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "dialog:allow-message"
   ]
 }
