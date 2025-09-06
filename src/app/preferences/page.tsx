@@ -11,6 +11,8 @@ import {
   Settings,
 } from "@/lib/settings";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import {
   Tabs,
   TabsContent,
@@ -145,6 +147,11 @@ export default function PreferencesPage() {
   return (
     <div className="flex flex-1 flex-col h-screen">
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur-sm">
+        <Link href="/" passHref>
+          <Button variant="ghost" size="icon" aria-label="Go back">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
         <h1 className="text-xl md:text-2xl font-headline font-bold text-primary truncate">
           Preferences
         </h1>
