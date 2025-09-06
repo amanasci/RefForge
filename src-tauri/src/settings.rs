@@ -158,9 +158,17 @@ pub fn get_settings(app: AppHandle) -> Result<Settings, String> {
 #[command]
 pub fn set_settings(app: AppHandle, settings: Settings) -> Result<(), String> {
     let app_dir = get_app_dir(&app)?;
+
+    let old_settings = logic::read_settings(&app_dir).unwrap_or(logic::default_settings());
+
     logic::write_settings(&app_dir, &settings)?;
     app.emit("settings-updated", &settings)
         .map_err(|e| e.to_string())?;
+
+    if old_settings.db_path != settings.db_path {
+        app.restart();
+    }
+
     Ok(())
 }
 

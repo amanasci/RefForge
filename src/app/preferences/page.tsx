@@ -6,7 +6,7 @@ import {
   setSettings,
   validateDb,
   backupDb,
-  chooseDbFile,
+  chooseDbPath,
   onSettingsUpdate,
   Settings,
 } from "@/lib/settings";
@@ -116,8 +116,8 @@ export default function PreferencesPage() {
     setDraftSettings(defaultSettings);
   };
 
-  const handleChooseDbFile = async () => {
-    const path = await chooseDbFile();
+  const handleChooseDbPath = async () => {
+    const path = await chooseDbPath();
     if (path && draftSettings) {
       setDraftSettings({ ...draftSettings, db_path: path });
     }
@@ -165,7 +165,7 @@ export default function PreferencesPage() {
           <TabsContent value="database">
             <DatabaseTab
                 draftSettings={draftSettings}
-                onChooseDbFile={handleChooseDbFile}
+                onChooseDbFile={handleChooseDbPath}
                 onTestDb={handleTestDb}
             />
           </TabsContent>

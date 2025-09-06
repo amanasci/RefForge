@@ -19,8 +19,11 @@ test.describe('Preferences Page', () => {
           if (command === 'backup_db') {
             return { ok: true, message: 'E2E backup successful' };
           }
-          if (command === 'plugin:dialog|save') {
-            return '/e2e/new.db';
+          if (command === 'plugin:dialog|open') {
+            return '/e2e/selected-folder';
+          }
+          if (command === 'plugin:path|join') {
+            return args.paths.join('/');
           }
         },
       };
@@ -35,7 +38,7 @@ test.describe('Preferences Page', () => {
 
     // Change DB path
     await page.getByRole('button', { name: 'Choose...' }).click();
-    await expect(page.locator('input#db-path')).toHaveValue('/e2e/new.db');
+    await expect(page.locator('input#db-path')).toHaveValue('/e2e/selected-folder/refforge.db');
 
     // Change theme
     await page.getByRole('tab', { name: 'Appearance' }).click();

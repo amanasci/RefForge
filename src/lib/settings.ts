@@ -1,6 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
-import { save } from '@tauri-apps/plugin-dialog';
+import { open } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
+import { join } from '@tauri-apps/api/path';
+
+const DB_FILENAME = 'refforge.db';
 
 export interface Settings {
   version: number;
@@ -35,12 +38,17 @@ export const backupDb = async (path: string): Promise<BackupResult> => {
   return await invoke('backup_db', { path });
 };
 
-export const chooseDbFile = async (): Promise<string | null> => {
-  const result = await save({
-    filters: [{ name: 'SQLite Databases', extensions: ['db', 'sqlite', 'sqlite3'] }],
-    defaultPath: 'refforge.db',
+export const chooseDbPath = async (): Promise<string | null> => {
+  const selectedPath = await open({
+    directory: true,
+    multiple: false,
+    title: 'Select Database Folder'
   });
-  return result;
+
+  if (typeof selectedPath === 'string') {
+    return await join(selectedPath, DB_FILENAME);
+  }
+  return null;
 };
 
 export const onSettingsUpdate = async (callback: (settings: Settings) => void) => {
