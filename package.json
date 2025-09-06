@@ -10,8 +10,6 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "jest",
     "test:e2e": "playwright test",
-    "start:ci": "serve out -p 9002",
-    "test:e2e:ci": "start-server-and-test start:ci http://localhost:9002 test:e2e",
     "tauri": "tauri"
   },
   "dependencies": {

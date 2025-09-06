@@ -20,6 +20,7 @@
     },
     "sql:default",
     "sql:allow-execute",
-    "dialog:allow-save"
+    "dialog:allow-save",
+    "dialog:allow-open"
   ]
 }
