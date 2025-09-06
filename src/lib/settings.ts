@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
+import { save } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
 
 export interface Settings {
@@ -36,14 +36,11 @@ export const backupDb = async (path: string): Promise<BackupResult> => {
 };
 
 export const chooseDbFile = async (): Promise<string | null> => {
-  const result = await open({
+  const result = await save({
     filters: [{ name: 'SQLite Databases', extensions: ['db', 'sqlite', 'sqlite3'] }],
-    multiple: false,
+    defaultPath: 'refforge.db',
   });
-  if (typeof result === 'string') {
-    return result;
-  }
-  return null;
+  return result;
 };
 
 export const onSettingsUpdate = async (callback: (settings: Settings) => void) => {

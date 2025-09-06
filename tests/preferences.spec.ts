@@ -19,7 +19,7 @@ test.describe('Preferences Page', () => {
           if (command === 'backup_db') {
             return { ok: true, message: 'E2E backup successful' };
           }
-          if (command === 'plugin:dialog|open') {
+          if (command === 'plugin:dialog|save') {
             return '/e2e/new.db';
           }
         },
