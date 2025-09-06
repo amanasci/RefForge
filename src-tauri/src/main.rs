@@ -5,32 +5,38 @@ mod settings;
 
 use settings::{backup_db, get_settings, set_settings, validate_db};
 use tauri_plugin_sql::{Migration, MigrationKind};
-use std::path::PathBuf;
 
-fn get_config_path() -> Option<PathBuf> {
-    dirs::config_dir().map(|p| p.join("RefForge"))
-}
+fn prepare_db_url() -> Result<String, Box<dyn std::error::Error>> {
+    let config_dir = dirs::config_dir().ok_or("Could not find config directory")?.join("RefForge");
+    if !config_dir.exists() {
+        std::fs::create_dir_all(&config_dir)?;
+    }
 
-fn get_default_db_path() -> Option<PathBuf> {
-    dirs::data_dir().map(|p| p.join("RefForge").join("refforge.db"))
-}
+    let settings = settings::logic::read_settings(&config_dir).unwrap_or_else(|_| settings::logic::default_settings());
 
-fn main() {
-    let settings = if let Some(config_path) = get_config_path() {
-        if !config_path.exists() {
-            std::fs::create_dir_all(&config_path).unwrap();
+    let db_path_str = match settings.db_path {
+        Some(path) => path,
+        None => {
+            let data_dir = dirs::data_dir().ok_or("Could not find data directory")?.join("RefForge");
+            if !data_dir.exists() {
+                std::fs::create_dir_all(&data_dir)?;
+            }
+            let default_path = data_dir.join("refforge.db");
+            // Also save this default path to settings for consistency
+            let mut new_settings = settings::logic::default_settings();
+            new_settings.db_path = Some(default_path.to_string_lossy().to_string());
+            settings::logic::write_settings(&config_dir, &new_settings)?;
+
+            default_path.to_string_lossy().to_string()
         }
-        settings::logic::read_settings(&config_path).unwrap_or_else(|_| settings::logic::default_settings())
-    } else {
-        settings::logic::default_settings()
     };
 
-    let db_path_str = settings.db_path.unwrap_or_else(|| {
-        get_default_db_path().unwrap().to_string_lossy().to_string()
-    });
+    Ok(format!("sqlite:{}", db_path_str))
+}
 
-    let db_url = format!("sqlite:{}", db_path_str);
 
+fn main() {
+    let db_url = prepare_db_url().expect("Failed to prepare database URL");
     let migrations = vec![
         Migration {
             version: 1,
