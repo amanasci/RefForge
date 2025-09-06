@@ -4,12 +4,15 @@ import * as React from "react";
 import { useTauriStorage } from "@/hooks/use-tauri-storage";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ReferenceList } from "@/components/reference-list";
+import { Preferences } from "@/components/Preferences";
 import { Project, Reference } from "@/types";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { PageHeader } from "@/components/page-header";
 import { useFilteredReferences } from "@/hooks/use-filtered-references";
 import { LoadingSkeleton } from "@/components/loading-skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
 
 export default function RefForgeApp() {
   const {
@@ -31,6 +34,7 @@ export default function RefForgeApp() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
   const [selectedReferences, setSelectedReferences] = React.useState<string[]>([]);
+  const [preferencesOpen, setPreferencesOpen] = React.useState(false);
 
   const allTags = React.useMemo(() => {
     if (!references) return [];
@@ -93,9 +97,17 @@ export default function RefForgeApp() {
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur-sm">
           <SidebarTrigger className="-ml-1 transition-colors hover:bg-accent hover:text-accent-foreground" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <h1 className="text-xl md:text-2xl font-headline font-bold text-primary truncate">
+          <h1 className="text-xl md:text-2xl font-headline font-bold text-primary truncate flex-1">
             {pageTitle}
           </h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setPreferencesOpen(true)}
+            aria-label="Open Preferences"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
         </header>
         <div className="flex flex-1 flex-col">
           <PageHeader
@@ -121,6 +133,11 @@ export default function RefForgeApp() {
             />
           </main>
         </div>
+        
+        <Preferences
+          open={preferencesOpen}
+          onOpenChange={setPreferencesOpen}
+        />
       </SidebarInset>
     </SidebarProvider>
   );
