@@ -22,7 +22,9 @@ import {
   Archive,
   X,
   Edit,
+  Settings,
 } from "lucide-react";
+import Link from "next/link";
 import { RefForgeLogo } from "@/components/icons";
 import type { Project } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -336,6 +338,20 @@ export function AppSidebar({
                 </CollapsibleContent>
               </Collapsible>
             </SidebarGroup>
+
+            <SidebarSeparator />
+
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <Link href="/preferences" passHref>
+                  <SidebarMenuButton tooltip="Preferences">
+                    <Settings className="h-4 w-4" />
+                    <span>Preferences</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            </SidebarMenu>
+
           </ScrollArea>
         </SidebarContent>
         <SidebarRail />

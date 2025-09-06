@@ -1,6 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod settings;
+
+use settings::{backup_db, get_settings, set_settings, validate_db};
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 fn main() {
@@ -47,6 +50,12 @@ fn main() {
                 .add_migrations("sqlite:refforge.db", migrations)
                 .build(),
         )
+        .invoke_handler(tauri::generate_handler![
+            get_settings,
+            set_settings,
+            validate_db,
+            backup_db
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
