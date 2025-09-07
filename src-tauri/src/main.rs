@@ -3,6 +3,32 @@
 
 use tauri_plugin_sql::{Migration, MigrationKind};
 
+mod settings;
+use settings::Settings;
+
+#[tauri::command]
+async fn get_settings() -> Result<Settings, String> {
+    Settings::load()
+}
+
+#[tauri::command]
+async fn set_settings(settings: Settings) -> Result<(), String> {
+    settings.save()
+}
+
+#[tauri::command]
+async fn get_default_db_path() -> Result<String, String> {
+    Settings::get_default_db_path()
+}
+
+#[tauri::command]
+async fn restart_app(app_handle: tauri::AppHandle) -> Result<(), String> {
+    app_handle.restart();
+    // This is unreachable but required for the function signature
+    #[allow(unreachable_code)]
+    Ok(())
+}
+
 fn main() {
     let migrations = vec![
         Migration {
@@ -39,14 +65,24 @@ fn main() {
         },
     ];
 
+    // Load settings to get the database path
+    let settings = Settings::load().unwrap_or_default();
+    let db_path = settings.get_db_path().unwrap_or_else(|_| "sqlite:refforge.db".to_string());
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(
             tauri_plugin_sql::Builder::default()
-                .add_migrations("sqlite:refforge.db", migrations)
+                .add_migrations(&db_path, migrations)
                 .build(),
         )
+        .invoke_handler(tauri::generate_handler![
+            get_settings,
+            set_settings,
+            get_default_db_path,
+            restart_app
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
