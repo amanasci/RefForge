@@ -24,3 +24,11 @@ export interface AppData {
   projects: Project[];
   references: Reference[];
 }
+
+export interface Settings {
+  version: number;
+  db_path: string | null;
+  theme: "system" | "light" | "dark";
+}
+
+export type Theme = "system" | "light" | "dark";

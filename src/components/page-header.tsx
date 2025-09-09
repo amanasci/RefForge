@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search, PlusCircle, LayoutGrid, List } from "lucide-react";
+import { Search, PlusCircle, LayoutGrid, List, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { AddReferenceDialog } from "@/components/add-reference-dialog";
+import { PreferencesDialog } from "@/components/preferences-dialog";
 import { Project, Reference } from "@/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,6 +47,7 @@ export function PageHeader({
   const isMobile = useIsMobile();
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const { data } = useTauriStorage();
+  const [preferencesOpen, setPreferencesOpen] = React.useState(false);
 
   const handleExport = async () => {
     if (!data) return;
@@ -168,7 +170,21 @@ export function PageHeader({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setPreferencesOpen(true)}
+          aria-label="Preferences"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
       </div>
+      
+      <PreferencesDialog 
+        open={preferencesOpen} 
+        onOpenChange={setPreferencesOpen} 
+      />
     </header>
   );
 }

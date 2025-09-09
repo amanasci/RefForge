@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Database from '@tauri-apps/plugin-sql';
-import type { AppData, Project, Reference } from '@/types';
+import { invoke } from '@tauri-apps/api/core';
+import type { AppData, Project, Reference, Settings } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 // This interface is to properly type the data coming from the DB
@@ -54,8 +55,29 @@ export function useTauriStorage() {
 
   const initDb = useCallback(async () => {
     try {
-      const database = await Database.load("sqlite:refforge.db");
+      // Load settings to get database path
+      let dbPath = "sqlite:refforge.db"; // default fallback
+      try {
+        const settings = await invoke<Settings>('get_settings');
+        if (settings) {
+          // Get the proper database path from settings
+          if (settings.db_path) {
+            dbPath = `sqlite:${settings.db_path}`;
+          } else {
+            // Use default path from backend
+            const defaultPath = await invoke<string>('get_default_db_path');
+            if (defaultPath) {
+              dbPath = `sqlite:${defaultPath}`;
+            }
+          }
+        }
+      } catch (settingsError) {
+        console.warn('Failed to load settings, using default database path:', settingsError);
+      }
+
+      const database = await Database.load(dbPath);
       db.current = database;
+      
       // Add status column to references table if it doesn't exist
       try {
         await db.current.execute("ALTER TABLE `references` ADD COLUMN status TEXT NOT NULL DEFAULT 'Not Finished'");
