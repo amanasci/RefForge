@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "database_path": "refforge.db",
+  "theme": "dark",
+  "last_verified": null,
+  "backup_enabled": true,
+  "max_backups": 10
+}
