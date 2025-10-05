@@ -1,4 +1,3 @@
-# Publish release and upload Tauri build artifacts for multiple platforms
 name: 'publish'
 
 on:
@@ -7,14 +6,11 @@ on:
     tags:
       - 'v*'
 
-# Give the jobs write access to repo contents (needed to create/update/releases and upload assets)
-permissions:
-  contents: write
-
 jobs:
-  # Create the GitHub release (draft) once. Matrix jobs will `needs` this so the release exists.
   create-release:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Create GitHub release (draft)
@@ -38,25 +34,22 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest'
-            target: 'aarch64-apple-darwin'
+            args: '--target aarch64-apple-darwin'
           - platform: 'macos-latest'
-            target: 'x86_64-apple-darwin'
+            args: '--target x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
-            target: ''
+            args: ''
           - platform: 'windows-latest'
-            target: ''
+            args: ''
           - platform: 'windows-latest'
-            target: 'aarch64-pc-windows-msvc'
+            args: '--target aarch64-pc-windows-msvc'
 
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust target (if needed)
-        if: matrix.target != ''
-        run: |
-          echo "Adding Rust target: ${{ matrix.target }}"
-          rustup target add ${{ matrix.target }}
+      - name: Rust target for Windows ARM64
+        if: matrix.args == '--target aarch64-pc-windows-msvc'
+        run: rustup target add aarch64-pc-windows-msvc
 
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
@@ -70,8 +63,10 @@ jobs:
           node-version: lts/*
           cache: 'npm'
 
-      - name: ensure Rust toolchain (stable)
+      - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -83,13 +78,8 @@ jobs:
 
       - name: Build Tauri app
         run: |
-          echo "Building on ${{ matrix.platform }} with target '${{ matrix.target }}'"
-          if [ -n "${{ matrix.target }}" ]; then
-            npm run tauri build -- --target ${{ matrix.target }}
-          else
-            npm run tauri build
-          fi
-        shell: bash
+          echo "Building on ${{ matrix.platform }} with args '${{ matrix.args }}'"
+          npm run tauri build -- ${{ matrix.args }}
 
       - name: Find and upload build artifacts to release
         uses: actions/github-script@v6
@@ -99,8 +89,9 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const core = require('@actions/core');
+            // do NOT re-declare `core` here; github-script injects a `core` binding
 
+            // Helper: recursively list files under a dir
             function walk(dir) {
               let results = [];
               const list = fs.readdirSync(dir || '.');
@@ -119,8 +110,8 @@ jobs:
             const repoRoot = process.cwd();
             const exts = ['.AppImage', '.dmg', '.deb', '.rpm', '.msi', '.exe', '.zip', '.tar.gz', '.tgz', '.pkg'];
 
-            // Search common Tauri bundle locations first, fallback to repo root only if nothing found.
             const searchDirs = [
+              path.join('src-tauri','target'),
               path.join('src-tauri','target','release','bundle'),
               path.join('src-tauri','target','release','bundle','osx'),
               path.join('src-tauri','target','release','bundle','debian'),
@@ -138,11 +129,7 @@ jobs:
               }
             }
 
-            // If nothing found in usual places, include repo root (may be large; fallback).
-            if (candidates.length === 0) {
-              core.info('No artifacts found in expected bundle paths; scanning repo root as fallback (may be slow).');
-              candidates = candidates.concat(walk(repoRoot));
-            }
+            candidates = candidates.concat(walk(repoRoot));
 
             const uniq = Array.from(new Set(candidates));
             const artifacts = uniq.filter(f => {
@@ -178,7 +165,6 @@ jobs:
               });
             }
 
-  # After all matrix jobs finish, publish the release (clear draft flag)
   publish-release:
     needs: publish-tauri
     runs-on: ubuntu-22.04
@@ -191,7 +177,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           script: |
-            const core = require('@actions/core');
+            // do NOT re-declare `core` here; github-script injects a `core` binding
             const tag = process.env.GITHUB_REF_NAME || (process.env.GITHUB_REF && process.env.GITHUB_REF.replace('refs/tags/','')) || '';
             if (!tag) {
               core.setFailed('Tag name not available; cannot publish release.');
