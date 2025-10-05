@@ -74,9 +74,6 @@ jobs:
             args: '--target aarch64-pc-windows-msvc'
 
     runs-on: ${{ matrix.platform }}
-    env:
-      RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
-      RELEASE_TAG: ${{ needs.create-release.outputs.release_tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -88,7 +85,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf jq
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -109,138 +106,16 @@ jobs:
       - name: install frontend dependencies
         run: npm install
 
-      - name: Build Tauri app
-        run: |
-          echo "Building on ${{ matrix.platform }} with args '${{ matrix.args }}'"
-          npm run tauri build -- ${{ matrix.args }}
-
-      - name: Find and upload build artifacts to release (uses RELEASE_ID if available)
-        uses: actions/github-script@v6
+      - name: Build and upload artifacts using Tauri Action
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_ID: ${{ env.RELEASE_ID }}
-          RELEASE_TAG: ${{ env.RELEASE_TAG }}
         with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            // Note: github-script injects `core`, `github`, and `context`
-
-            function walk(dir) {
-              let results = [];
-              const list = fs.readdirSync(dir || '.');
-              list.forEach(function(file) {
-                file = path.join(dir, file);
-                const stat = fs.statSync(file);
-                if (stat && stat.isDirectory()) {
-                  results = results.concat(walk(file));
-                } else {
-                  results.push(file);
-                }
-              });
-              return results;
-            }
-
-            const repoRoot = process.cwd();
-            const exts = ['.AppImage', '.dmg', '.deb', '.rpm', '.msi', '.exe', '.zip', '.tar.gz', '.tgz', '.pkg'];
-
-            const searchDirs = [
-              path.join('src-tauri','target','release','bundle'),
-              path.join('src-tauri','target','release','bundle','osx'),
-              path.join('src-tauri','target','release','bundle','debian'),
-              path.join('src-tauri','target','release','bundle','linux'),
-              path.join('src-tauri','target','release','bundle','msi'),
-              path.join('dist'),
-              path.join('release')
-            ];
-
-            let candidates = [];
-            for (const d of searchDirs) {
-              const full = path.join(repoRoot, d);
-              if (fs.existsSync(full)) {
-                candidates = candidates.concat(walk(full));
-              }
-            }
-            if (candidates.length === 0) {
-              core.info('No artifacts found in expected locations; scanning repo root as fallback (may be slow).');
-              candidates = candidates.concat(walk(repoRoot));
-            }
-
-            const uniq = Array.from(new Set(candidates));
-            const artifacts = uniq.filter(f => {
-              const lower = f.toLowerCase();
-              for (const e of exts) if (lower.endsWith(e.toLowerCase())) return true;
-              try { return fs.statSync(f).size > 1024 && path.basename(f).toLowerCase().includes('refforge'); } catch(e) { return false; }
-            });
-
-            if (artifacts.length === 0) {
-              core.info('No release artifacts found to upload. Listing candidates for debugging:');
-              core.info(JSON.stringify(uniq.slice(0,50), null, 2));
-              return;
-            }
-
-            // Use the RELEASE_ID passed from create-release if available
-            let releaseId = process.env.RELEASE_ID || '';
-            let releaseData = null;
-
-            if (releaseId) {
-              try {
-                const r = await github.rest.repos.getRelease({ owner: context.repo.owner, repo: context.repo.repo, release_id: Number(releaseId) });
-                releaseData = r.data;
-              } catch (e) {
-                core.info(`getRelease(release_id=${releaseId}) failed: ${e.message}`);
-                releaseData = null;
-              }
-            }
-
-            // Fallback: if we don't have releaseData, try to find by tag (only if tag present) or by name/draft
-            const envRef = process.env.GITHUB_REF || '';
-            const refName = process.env.GITHUB_REF_NAME || (envRef.replace(/^refs\/(tags|heads)\//, '') || '');
-            const isTag = envRef.startsWith('refs/tags/');
-
-            if (!releaseData && isTag && refName) {
-              try {
-                const res = await github.rest.repos.getReleaseByTag({ owner: context.repo.owner, repo: context.repo.repo, tag: refName });
-                releaseData = res.data;
-              } catch (e) {
-                core.info(`getReleaseByTag(${refName}) failed: ${e.message}`);
-              }
-            }
-
-            if (!releaseData) {
-              // try to find the draft release created earlier with name "App <tag>"
-              const expectedName = `App ${process.env.RELEASE_TAG || refName}`;
-              core.info(`Searching for draft release with name="${expectedName}"`);
-              const list = await github.rest.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo, per_page: 100 });
-              releaseData = list.data.find(r => r.name === expectedName && r.draft === true);
-            }
-
-            if (!releaseData) {
-              core.setFailed('Could not find a draft release to upload assets to. Ensure create-release created the draft release and that the workflow was triggered on a tag.');
-              return;
-            }
-
-            const finalReleaseId = releaseData.id;
-
-            for (const filePath of artifacts) {
-              const name = path.basename(filePath);
-              core.info(`Uploading ${filePath} as ${name} to release id=${finalReleaseId}`);
-              const data = fs.readFileSync(filePath);
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: finalReleaseId,
-                name: name,
-                data: data,
-                headers: {
-                  'content-type': 'application/octet-stream',
-                  'content-length': data.length
-                }
-              });
-            }
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          args: ${{ matrix.args }}
 
   publish-release:
-    needs: publish-tauri
+    needs: [create-release, publish-tauri]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -250,48 +125,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
-          RELEASE_TAG: ${{ needs.create-release.outputs.release_tag }}
         with:
           script: |
-            // Note: github-script injects `core`, `github`, and `context`
-            let releaseData = null;
-            if (process.env.RELEASE_ID) {
-              try {
-                const r = await github.rest.repos.getRelease({ owner: context.repo.owner, repo: context.repo.repo, release_id: Number(process.env.RELEASE_ID) });
-                releaseData = r.data;
-              } catch (e) {
-                core.info(`getRelease(release_id=${process.env.RELEASE_ID}) failed: ${e.message}`);
-              }
-            }
-
-            if (!releaseData) {
-              const envRef = process.env.GITHUB_REF || '';
-              const refName = process.env.RELEASE_TAG || process.env.GITHUB_REF_NAME || (envRef.replace(/^refs\/(tags|heads)\//, '') || '');
-              if (envRef.startsWith('refs/tags/') && refName) {
-                try {
-                  const res = await github.rest.repos.getReleaseByTag({ owner: context.repo.owner, repo: context.repo.repo, tag: refName });
-                  releaseData = res.data;
-                } catch (e) {
-                  core.info(`getReleaseByTag(${refName}) failed: ${e.message}`);
-                }
-              }
-            }
-
-            if (!releaseData) {
-              const expectedName = `App ${process.env.RELEASE_TAG || process.env.GITHUB_REF_NAME || ''}`;
-              const list = await github.rest.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo, per_page: 100 });
-              releaseData = list.data.find(r => r.name === expectedName && r.draft === true);
-            }
-
-            if (!releaseData) {
-              core.setFailed('Could not find the draft release to publish. Ensure the draft release exists and assets were uploaded.');
-              return;
-            }
-
+            const releaseId = Number(process.env.RELEASE_ID);
+            
             await github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              release_id: releaseData.id,
+              release_id: releaseId,
               draft: false
             });
-            core.info(`Published release ${releaseData.tag_name || releaseData.name}`);
+            
+            core.info(`Published release with ID ${releaseId}`);

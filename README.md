@@ -87,3 +87,45 @@ npm run tauri build
 ```
 
 This will create an optimized, bundled application in `src-tauri/target/release/bundle/`. The output format will depend on your operating system (e.g., `.deb` or `.AppImage` on Linux, `.dmg` on macOS, `.msi` on Windows).
+
+## Creating Releases
+
+RefForge uses GitHub Actions to automatically build and publish releases with artifacts for all supported platforms (Linux, macOS, Windows).
+
+### Automated Release Process
+
+When you push a tag starting with `v` (e.g., `v0.3.0`), the release workflow automatically:
+1. Creates a draft release on GitHub
+2. Builds the application for all platforms:
+   - Linux: `.deb`, `.AppImage`, `.rpm`
+   - macOS: `.dmg` and `.app.tar.gz` for both Intel and ARM64
+   - Windows: `.msi` and `-setup.exe` for both x64 and ARM64
+3. Uploads all artifacts to the release
+4. Publishes the release (removes draft status)
+
+To create a new release:
+
+```bash
+# 1. Update version in package.json and src-tauri/tauri.conf.json
+# 2. Commit the changes
+git add package.json src-tauri/tauri.conf.json
+git commit -m "Bump version to v0.3.0"
+
+# 3. Create and push the tag
+git tag v0.3.0
+git push origin v0.3.0
+
+# 4. The workflow will automatically run and create the release
+```
+
+### Testing the Release Workflow
+
+Before creating a real release, you can test the workflow:
+
+```bash
+# Trigger the test workflow (via GitHub Actions UI)
+# Go to: https://github.com/amanasci/RefForge/actions/workflows/test-release.yml
+# Click "Run workflow" and enter a test tag name
+```
+
+See [docs/release-workflow-testing.md](docs/release-workflow-testing.md) for detailed testing instructions and troubleshooting.
