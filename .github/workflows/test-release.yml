@@ -1,0 +1,142 @@
+# Test workflow for release artifact creation
+# This can be triggered manually to test the release workflow without creating a tag
+name: 'test-release'
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_tag:
+        description: 'Test tag name (e.g., test-v0.0.1)'
+        required: true
+        default: 'test-v0.0.1'
+
+permissions:
+  contents: write
+
+jobs:
+  create-test-release:
+    runs-on: ubuntu-22.04
+    outputs:
+      release_id: ${{ steps.create_release.outputs.release_id }}
+      release_tag: ${{ steps.create_release.outputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub test release (draft)
+        id: create_release
+        uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const tagName = '${{ github.event.inputs.test_tag }}';
+            
+            // Create the release (draft)
+            const createRes = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              name: `Test Release ${tagName}`,
+              body: 'This is a test release to verify artifact uploads. This release should be deleted after testing.',
+              draft: true,
+              prerelease: true
+            });
+
+            const releaseId = createRes.data.id;
+            core.info(`Created test release id=${releaseId} tag=${createRes.data.tag_name}`);
+
+            // Export step outputs
+            const fs = require('fs');
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `release_id=${releaseId}\n`);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `release_tag=${tagName}\n`);
+
+  test-build-ubuntu:
+    needs: create-test-release
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install dependencies (ubuntu only)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: install frontend dependencies
+        run: npm install
+
+      - name: Build and upload artifacts using Tauri Action
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ needs.create-test-release.outputs.release_id }}
+
+  verify-artifacts:
+    needs: [create-test-release, test-build-ubuntu]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Verify artifacts were uploaded
+        uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.create-test-release.outputs.release_id }}
+        with:
+          script: |
+            const releaseId = Number(process.env.RELEASE_ID);
+            
+            // Get release with assets
+            const release = await github.rest.repos.getRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: releaseId
+            });
+            
+            const assets = release.data.assets;
+            core.info(`Found ${assets.length} assets in the release`);
+            
+            if (assets.length === 0) {
+              core.setFailed('No artifacts were uploaded to the release!');
+            } else {
+              core.info('Artifacts found:');
+              assets.forEach(asset => {
+                core.info(`  - ${asset.name} (${(asset.size / 1024 / 1024).toFixed(2)} MB)`);
+              });
+              core.info('✅ Test passed! Artifacts were successfully uploaded.');
+            }
+
+  cleanup:
+    needs: [create-test-release, verify-artifacts]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    if: always()
+    steps:
+      - name: Instructions for cleanup
+        uses: actions/github-script@v6
+        env:
+          RELEASE_ID: ${{ needs.create-test-release.outputs.release_id }}
+          TEST_TAG: ${{ github.event.inputs.test_tag }}
+        with:
+          script: |
+            core.info('Test workflow completed.');
+            core.info('To clean up the test release and tag:');
+            core.info(`1. Delete release: https://github.com/${context.repo.owner}/${context.repo.repo}/releases`);
+            core.info(`2. Delete tag: git push origin :refs/tags/${process.env.TEST_TAG}`);
