@@ -31,13 +31,13 @@ interface PreferencesDialogProps {
 }
 
 export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps) {
-  const { settings, selectDatabasePath, getDefaultDatabasePath, updateDatabasePath, useDefaultDatabasePath, restartApp } = useSettings();
+  const { settings, selectDatabasePath, getDefaultDatabasePath, getDefaultDatabaseFolder, updateDatabasePath, useDefaultDatabasePath, restartApp } = useSettings();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   
   const [localTheme, setLocalTheme] = useState<Theme>(theme);
   const [localDbPath, setLocalDbPath] = useState<string>('');
-  const [defaultDbPath, setDefaultDbPath] = useState<string>('');
+  const [defaultDbFolder, setDefaultDbFolder] = useState<string>('');
   const [isApplying, setIsApplying] = useState(false);
   const [needsRestart, setNeedsRestart] = useState(false);
 
@@ -45,18 +45,19 @@ export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps
     if (open) {
       setLocalTheme(theme);
       
-      // Load default database path
-      getDefaultDatabasePath().then((path) => {
+      // Load default database folder
+      getDefaultDatabaseFolder().then((path) => {
         if (path) {
-          setDefaultDbPath(path);
+          setDefaultDbFolder(path);
         }
       });
 
-      // Set current database path
+      // Set current database path/folder
       if (settings?.db_path) {
         setLocalDbPath(settings.db_path);
       } else {
-        getDefaultDatabasePath().then((path) => {
+        // If no custom path is set, show the default folder
+        getDefaultDatabaseFolder().then((path) => {
           if (path) {
             setLocalDbPath(path);
           }
@@ -65,7 +66,7 @@ export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps
       
       setNeedsRestart(false);
     }
-  }, [open, theme, settings, getDefaultDatabasePath]);
+  }, [open, theme, settings, getDefaultDatabaseFolder]);
 
   const handleBrowseDatabasePath = async () => {
     try {
@@ -85,15 +86,15 @@ export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps
 
   const handleUseDefaultPath = async () => {
     try {
-      const defaultPath = await getDefaultDatabasePath();
-      if (defaultPath) {
-        setLocalDbPath(defaultPath);
+      const defaultFolder = await getDefaultDatabaseFolder();
+      if (defaultFolder) {
+        setLocalDbPath(defaultFolder);
         setNeedsRestart(settings?.db_path !== null);
       }
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to get default database path.',
+        description: 'Failed to get default database folder.',
         variant: 'destructive',
       });
     }
@@ -113,8 +114,8 @@ export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps
       }
 
       // Handle database path change
-      const currentDbPath = settings?.db_path || defaultDbPath;
-      const newDbPath = localDbPath === defaultDbPath ? null : localDbPath;
+      const currentDbPath = settings?.db_path || defaultDbFolder;
+      const newDbPath = localDbPath === defaultDbFolder ? null : localDbPath;
       
       if (newDbPath !== settings?.db_path) {
         await updateDatabasePath(newDbPath);
@@ -197,14 +198,14 @@ export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps
           {/* Database Path Settings */}
           <div className="space-y-3">
             <Label htmlFor="database-path" className="text-sm font-medium">
-              Database Location
+              Database Folder
             </Label>
             <div className="flex gap-2">
               <Input
                 id="database-path"
                 value={localDbPath}
                 readOnly
-                placeholder="Database file path"
+                placeholder="Database folder path"
                 className="flex-1"
               />
               <Button
@@ -226,7 +227,7 @@ export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Choose where to store your reference database. The application will restart after changing this setting.
+              Select the folder where your reference database (refforge.db) should be stored. If a database file exists in the folder, it will be used. Otherwise, a new database will be created. The application will restart after changing this setting.
             </p>
             
             {needsRestart && (

@@ -22,6 +22,11 @@ async fn get_default_db_path() -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn get_default_db_folder() -> Result<String, String> {
+    Settings::get_default_db_folder()
+}
+
+#[tauri::command]
 async fn restart_app(app_handle: tauri::AppHandle) -> Result<(), String> {
     app_handle.restart();
     // This is unreachable but required for the function signature
@@ -81,6 +86,7 @@ fn main() {
             get_settings,
             set_settings,
             get_default_db_path,
+            get_default_db_folder,
             restart_app
         ])
         .run(tauri::generate_context!())
