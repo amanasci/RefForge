@@ -1,11 +1,11 @@
 [package]
-name = "app"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+name = "RefForge"
+version = "0.2.0"
+description = "A modern reference manager, built with Tauri and Next.js"
+authors = ["amanasci <kumaramanasci@gmail.com>"]
 license = ""
-repository = ""
-default-run = "app"
+repository = "https://github.com/amanasci/RefForge/"
+default-run = "RefForge"
 edition = "2021"
 rust-version = "1.60"
 
