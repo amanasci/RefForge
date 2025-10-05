@@ -14,14 +14,13 @@ A non-exhaustive list of things todo. Not in any specific priority order.
 - [x] Feature 3: Delete a reference
 - [x] Feature 4: Search for a reference
 - [x] Feature 5: Export references
-- [x] Feature 6: Import Reference from arxiv 
+- [x] Feature 6: Import Reference from arxiv
 - [x] Feature 7: Export Database
-- [ ] Feature 8: Import from a .bib file 
-- [ ] Feature 9: Vector DB (maybe) 
+- [ ] Feature 8: Import from a .bib file
+- [ ] Feature 9: Vector DB (maybe)
 - [ ] Feature 10: Sync Function (drive or maybe something else)
-- [ ] Feature 11: Import from .bib file
-- [x] Feature 12: Add notes
-- [ ] Feature 13: Advanced filtering 
+- [x] Feature 11: Add notes
+- [ ] Feature 12: Advanced filtering
 
 ## Prerequisites
 
