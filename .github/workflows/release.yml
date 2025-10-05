@@ -5,8 +5,30 @@ on:
   push:
     tags:
       - 'v*'
+
 jobs:
+  # Create the GitHub release once. Matrix build jobs will `needs` this job
+  # so the release exists before they attempt to upload assets.
+  create-release:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create GitHub release (draft)
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: 'App ${{ github.ref_name }}'
+          body: 'See the assets to download this version and install.'
+          draft: true
+          prerelease: false
+
   publish-tauri:
+    needs: create-release
     permissions:
       contents: write
     strategy:
@@ -35,7 +57,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf jq
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -44,9 +66,8 @@ jobs:
           cache: 'npm' # Set this to npm, yarn or pnpm.
 
       - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable # Set this to dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
         with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
@@ -55,16 +76,100 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: install frontend dependencies
-        # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
-        run: npm install # change this to npm or pnpm depending on which one you use.
+        run: npm install
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build Tauri app
+        run: |
+          echo "Building on ${{ matrix.platform }} with args '${{ matrix.args }}'"
+          npm run tauri build -- ${{ matrix.args }}
+
+      - name: Find and upload build artifacts to release
+        uses: actions/github-script@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: app-v__VERSION__ # the action automatically replaces __VERSION__ with the app version.
-          releaseName: 'App v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
-          prerelease: false
-          args: ${{ matrix.args }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const core = require('@actions/core');
+
+            // Helper: recursively list files under a dir
+            function walk(dir) {
+              let results = [];
+              const list = fs.readdirSync(dir || '.');
+              list.forEach(function(file) {
+                file = path.join(dir, file);
+                const stat = fs.statSync(file);
+                if (stat && stat.isDirectory()) {
+                  results = results.concat(walk(file));
+                } else {
+                  results.push(file);
+                }
+              });
+              return results;
+            }
+
+            const repoRoot = process.cwd();
+            // Candidate extensions for installer artifacts
+            const exts = ['.AppImage', '.dmg', '.deb', '.rpm', '.msi', '.exe', '.zip', '.tar.gz', '.tgz', '.pkg'];
+
+            // Search common Tauri bundle locations
+            const searchDirs = [
+              path.join('src-tauri','target'),
+              path.join('src-tauri','target','release','bundle'),
+              path.join('src-tauri','target','release','bundle','osx'),
+              path.join('src-tauri','target','release','bundle','debian'),
+              path.join('src-tauri','target','release','bundle','linux'),
+              path.join('src-tauri','target','release','bundle','msi'),
+              path.join('dist'),
+              path.join('release')
+            ];
+
+            let candidates = [];
+            for (const d of searchDirs) {
+              const full = path.join(repoRoot, d);
+              if (fs.existsSync(full)) {
+                candidates = candidates.concat(walk(full));
+              }
+            }
+
+            // Also include any large installers in the workspace root
+            candidates = candidates.concat(walk(repoRoot));
+
+            // Filter unique and by extension and reasonable size (>1KB)
+            const uniq = Array.from(new Set(candidates));
+            const artifacts = uniq.filter(f => {
+              const lower = f.toLowerCase();
+              for (const e of exts) if (lower.endsWith(e.toLowerCase())) return true;
+              try { return fs.statSync(f).size > 1024 && path.basename(f).toLowerCase().includes('refforge'); } catch(e) { return false; }
+            });
+
+            if (artifacts.length === 0) {
+              core.info('No release artifacts found to upload. Listing candidates for debugging:');
+              core.info(JSON.stringify(uniq.slice(0,50), null, 2));
+              return;
+            }
+
+            // Get the release by tag name
+            // GitHub Actions exposes the tag name in GITHUB_REF when triggered by a tag push.
+            // Use GITHUB_REF_NAME (newer) or fall back to parsing GITHUB_REF.
+            const tag = process.env.GITHUB_REF_NAME || (process.env.GITHUB_REF && process.env.GITHUB_REF.replace('refs/tags/','')) || '';
+            const release = await github.rest.repos.getReleaseByTag({ owner: context.repo.owner, repo: context.repo.repo, tag });
+            const releaseId = release.data.id;
+
+            for (const filePath of artifacts) {
+              const name = path.basename(filePath);
+              core.info(`Uploading ${filePath} as ${name} to release ${tag}`);
+              const data = fs.readFileSync(filePath);
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: releaseId,
+                name: name,
+                data: data,
+                headers: {
+                  'content-type': 'application/octet-stream',
+                  'content-length': data.length
+                }
+              });
+            }
