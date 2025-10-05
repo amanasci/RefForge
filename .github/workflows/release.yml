@@ -1,3 +1,4 @@
+# Publish release and upload Tauri build artifacts for multiple platforms
 name: 'publish'
 
 on:
@@ -6,13 +7,14 @@ on:
     tags:
       - 'v*'
 
+# Give the jobs write access to repo contents (needed to create/update/releases and upload assets)
+permissions:
+  contents: write
+
 jobs:
-  # Create the GitHub release once. Matrix build jobs will `needs` this job
-  # so the release exists before they attempt to upload assets.
+  # Create the GitHub release (draft) once. Matrix jobs will `needs` this so the release exists.
   create-release:
     runs-on: ubuntu-22.04
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Create GitHub release (draft)
@@ -35,26 +37,29 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
-            args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest' # for Intel based macs.
-            args: '--target x86_64-apple-darwin'
+          - platform: 'macos-latest'
+            target: 'aarch64-apple-darwin'
+          - platform: 'macos-latest'
+            target: 'x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
-            args: ''
+            target: ''
           - platform: 'windows-latest'
-            args: ''
+            target: ''
           - platform: 'windows-latest'
-            args: '--target aarch64-pc-windows-msvc'
+            target: 'aarch64-pc-windows-msvc'
 
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
-      - name: Rust target for Windows ARM64
-        if: matrix.args == '--target aarch64-pc-windows-msvc'
-        run: rustup target add aarch64-pc-windows-msvc
+
+      - name: Install Rust target (if needed)
+        if: matrix.target != ''
+        run: |
+          echo "Adding Rust target: ${{ matrix.target }}"
+          rustup target add ${{ matrix.target }}
 
       - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf jq
@@ -63,12 +68,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: 'npm' # Set this to npm, yarn or pnpm.
+          cache: 'npm'
 
-      - name: install Rust stable
+      - name: ensure Rust toolchain (stable)
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -80,8 +83,13 @@ jobs:
 
       - name: Build Tauri app
         run: |
-          echo "Building on ${{ matrix.platform }} with args '${{ matrix.args }}'"
-          npm run tauri build -- ${{ matrix.args }}
+          echo "Building on ${{ matrix.platform }} with target '${{ matrix.target }}'"
+          if [ -n "${{ matrix.target }}" ]; then
+            npm run tauri build -- --target ${{ matrix.target }}
+          else
+            npm run tauri build
+          fi
+        shell: bash
 
       - name: Find and upload build artifacts to release
         uses: actions/github-script@v6
@@ -93,7 +101,6 @@ jobs:
             const path = require('path');
             const core = require('@actions/core');
 
-            // Helper: recursively list files under a dir
             function walk(dir) {
               let results = [];
               const list = fs.readdirSync(dir || '.');
@@ -110,12 +117,10 @@ jobs:
             }
 
             const repoRoot = process.cwd();
-            // Candidate extensions for installer artifacts
             const exts = ['.AppImage', '.dmg', '.deb', '.rpm', '.msi', '.exe', '.zip', '.tar.gz', '.tgz', '.pkg'];
 
-            // Search common Tauri bundle locations
+            // Search common Tauri bundle locations first, fallback to repo root only if nothing found.
             const searchDirs = [
-              path.join('src-tauri','target'),
               path.join('src-tauri','target','release','bundle'),
               path.join('src-tauri','target','release','bundle','osx'),
               path.join('src-tauri','target','release','bundle','debian'),
@@ -133,10 +138,12 @@ jobs:
               }
             }
 
-            // Also include any large installers in the workspace root
-            candidates = candidates.concat(walk(repoRoot));
+            // If nothing found in usual places, include repo root (may be large; fallback).
+            if (candidates.length === 0) {
+              core.info('No artifacts found in expected bundle paths; scanning repo root as fallback (may be slow).');
+              candidates = candidates.concat(walk(repoRoot));
+            }
 
-            // Filter unique and by extension and reasonable size (>1KB)
             const uniq = Array.from(new Set(candidates));
             const artifacts = uniq.filter(f => {
               const lower = f.toLowerCase();
@@ -150,9 +157,6 @@ jobs:
               return;
             }
 
-            // Get the release by tag name
-            // GitHub Actions exposes the tag name in GITHUB_REF when triggered by a tag push.
-            // Use GITHUB_REF_NAME (newer) or fall back to parsing GITHUB_REF.
             const tag = process.env.GITHUB_REF_NAME || (process.env.GITHUB_REF && process.env.GITHUB_REF.replace('refs/tags/','')) || '';
             const release = await github.rest.repos.getReleaseByTag({ owner: context.repo.owner, repo: context.repo.repo, tag });
             const releaseId = release.data.id;
@@ -173,3 +177,31 @@ jobs:
                 }
               });
             }
+
+  # After all matrix jobs finish, publish the release (clear draft flag)
+  publish-release:
+    needs: publish-tauri
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Publish GitHub release (clear draft)
+        uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const core = require('@actions/core');
+            const tag = process.env.GITHUB_REF_NAME || (process.env.GITHUB_REF && process.env.GITHUB_REF.replace('refs/tags/','')) || '';
+            if (!tag) {
+              core.setFailed('Tag name not available; cannot publish release.');
+              return;
+            }
+            const release = await github.rest.repos.getReleaseByTag({ owner: context.repo.owner, repo: context.repo.repo, tag });
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              draft: false
+            });
+            core.info(`Published release for ${tag}`);
