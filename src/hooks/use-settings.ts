@@ -47,16 +47,13 @@ export function useSettings() {
 
   const selectDatabasePath = useCallback(async (): Promise<string | null> => {
     try {
-      const result = await save({
-        filters: [{
-          name: 'SQLite Database',
-          extensions: ['db', 'sqlite', 'sqlite3']
-        }],
-        defaultPath: 'refforge.db',
-        title: 'Select Database Location'
+      const result = await open({
+        directory: true,
+        multiple: false,
+        title: 'Select Database Folder'
       });
       
-      return result;
+      return result as string | null;
     } catch (error) {
       console.error('Failed to select database path:', error);
       return null;
@@ -68,6 +65,15 @@ export function useSettings() {
       return await invoke<string>('get_default_db_path');
     } catch (error) {
       console.error('Failed to get default database path:', error);
+      return null;
+    }
+  }, []);
+
+  const getDefaultDatabaseFolder = useCallback(async (): Promise<string | null> => {
+    try {
+      return await invoke<string>('get_default_db_folder');
+    } catch (error) {
+      console.error('Failed to get default database folder:', error);
       return null;
     }
   }, []);
@@ -102,6 +108,7 @@ export function useSettings() {
     updateTheme,
     selectDatabasePath,
     getDefaultDatabasePath,
+    getDefaultDatabaseFolder,
     updateDatabasePath,
     useDefaultDatabasePath,
     restartApp,

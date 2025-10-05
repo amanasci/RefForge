@@ -58,21 +58,14 @@ export function useTauriStorage() {
       // Load settings to get database path
       let dbPath = "sqlite:refforge.db"; // default fallback
       try {
-        const settings = await invoke<Settings>('get_settings');
-        if (settings) {
-          // Get the proper database path from settings
-          if (settings.db_path) {
-            dbPath = `sqlite:${settings.db_path}`;
-          } else {
-            // Use default path from backend
-            const defaultPath = await invoke<string>('get_default_db_path');
-            if (defaultPath) {
-              dbPath = `sqlite:${defaultPath}`;
-            }
-          }
+        // Get the properly constructed database path from backend
+        // This handles folder vs file detection and appends "refforge.db" to folders
+        const constructedPath = await invoke<string>('get_db_path');
+        if (constructedPath) {
+          dbPath = constructedPath;
         }
       } catch (settingsError) {
-        console.warn('Failed to load settings, using default database path:', settingsError);
+        console.warn('Failed to load database path from settings, using default:', settingsError);
       }
 
       const database = await Database.load(dbPath);

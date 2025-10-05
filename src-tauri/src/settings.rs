@@ -32,6 +32,12 @@ impl Settings {
             .ok_or_else(|| "Failed to get data directory".to_string())
     }
 
+    pub fn get_default_db_folder() -> Result<String, String> {
+        dirs::data_local_dir()
+            .map(|dir| dir.join("RefForge").to_string_lossy().to_string())
+            .ok_or_else(|| "Failed to get data directory".to_string())
+    }
+
     pub fn load() -> Result<Settings, String> {
         let config_path = Self::get_config_path()?;
         
@@ -68,7 +74,24 @@ impl Settings {
 
     pub fn get_db_path(&self) -> Result<String, String> {
         match &self.db_path {
-            Some(path) => Ok(format!("sqlite:{}", path)),
+            Some(path) => {
+                // If the path is a directory, append the database filename
+                let path_buf = PathBuf::from(path);
+                let db_file_path = if path_buf.is_dir() {
+                    path_buf.join("refforge.db")
+                } else {
+                    // If it's already a file path, use it as-is for backwards compatibility
+                    path_buf
+                };
+                
+                // Ensure the parent directory exists
+                if let Some(parent) = db_file_path.parent() {
+                    fs::create_dir_all(parent)
+                        .map_err(|e| format!("Failed to create database directory: {}", e))?;
+                }
+                
+                Ok(format!("sqlite:{}", db_file_path.to_string_lossy()))
+            },
             None => {
                 let default_path = Self::get_default_db_path()?;
                 // Ensure the parent directory exists
