@@ -1,6 +1,6 @@
 [package]
 name = "RefForge"
-version = "0.2.0"
+version = "0.2.2"
 description = "A modern reference manager, built with Tauri and Next.js"
 authors = ["amanasci <kumaramanasci@gmail.com>"]
 license = ""
