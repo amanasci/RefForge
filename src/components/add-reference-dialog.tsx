@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 import { XMLParser } from "fast-xml-parser";
+import { invoke } from "@tauri-apps/api/core";
 import type { Project, Reference } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -181,30 +182,38 @@ export function AddReferenceDialog({
   const fetchArxivMetadata = async (
     doi: string
   ): Promise<Partial<Reference>> => {
-    const arxivId = doi.substring(doi.toLowerCase().indexOf("arxiv.") + 6);
-    const response = await fetch(
-      `https://export.arxiv.org/api/query?id_list=${arxivId}`
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch from arXiv");
-    }
-    const xmlData = await response.text();
+    const xmlData = await invoke<string>("fetch_arxiv_xml", { doi });
     const parser = new XMLParser({
       ignoreAttributes: false,
       attributeNamePrefix: "@_",
+      parseTagValue: false,
+      trimValues: true,
     });
     const jsonData = parser.parse(xmlData);
-    const entry = jsonData.feed.entry;
+    let entry = jsonData.feed?.entry;
+    if (Array.isArray(entry)) {
+      entry = entry[0];
+    }
+    if (!entry) {
+      throw new Error("No arXiv entry found");
+    }
+
+    const authors = Array.isArray(entry.author)
+      ? entry.author.map((a: { name: string }) => a.name)
+      : entry.author
+      ? [entry.author.name]
+      : [];
+
+    const published = entry.published || entry.updated;
+    const year = published ? new Date(published).getFullYear() : new Date().getFullYear();
 
     return {
-      title: entry.title.replace(/\s+/g, " "),
-      authors: Array.isArray(entry.author)
-        ? entry.author.map((a: { name: string }) => a.name)
-        : [entry.author.name],
-      year: new Date(entry.published).getFullYear(),
-      journal: entry["arxiv:journal_ref"] || "",
+      title: String(entry.title || "").replace(/\s+/g, " ").trim(),
+      authors,
+      year,
+      journal: String(entry["arxiv:journal_ref"] || "").trim(),
       doi: doi,
-      abstract: entry.summary.replace(/\s+/g, " "),
+      abstract: String(entry.summary || "").replace(/\s+/g, " ").trim(),
     };
   };
 

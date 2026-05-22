@@ -2,9 +2,66 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use tauri_plugin_sql::{Migration, MigrationKind};
+use reqwest;
 
 mod settings;
 use settings::Settings;
+
+fn normalize_arxiv_id(input: &str) -> Option<String> {
+    let mut id = input.trim().to_string();
+    let lower = id.to_lowercase();
+
+    if let Some(idx) = lower.find("id_list=") {
+        id = id[idx + "id_list=".len()..].to_string();
+    } else if lower.starts_with("https://doi.org/") {
+        id = id["https://doi.org/".len()..].to_string();
+    } else if lower.starts_with("http://doi.org/") {
+        id = id["http://doi.org/".len()..].to_string();
+    } else if lower.starts_with("10.48550/") {
+        id = id["10.48550/".len()..].to_string();
+    } else if lower.starts_with("https://arxiv.org/abs/") {
+        id = id["https://arxiv.org/abs/".len()..].to_string();
+    } else if lower.starts_with("http://arxiv.org/abs/") {
+        id = id["http://arxiv.org/abs/".len()..].to_string();
+    } else if lower.starts_with("https://arxiv.org/pdf/") {
+        id = id["https://arxiv.org/pdf/".len()..].to_string();
+    } else if lower.starts_with("http://arxiv.org/pdf/") {
+        id = id["http://arxiv.org/pdf/".len()..].to_string();
+    } else if lower.starts_with("arxiv:") {
+        id = id["arxiv:".len()..].to_string();
+    } else if lower.starts_with("arxiv.") {
+        id = id["arxiv.".len()..].to_string();
+    }
+
+    id = id.split('?').next().unwrap_or(&id).trim().to_string();
+    id = id.replace(' ', "");
+    if id.is_empty() {
+        return None;
+    }
+
+    // Keep only the core ID form if extra prefixes remain.
+    if let Some(start) = id.to_lowercase().find("arxiv.") {
+        id = id[start + "arxiv.".len()..].to_string();
+    }
+
+    let normalized = id.trim().to_string();
+    if normalized.is_empty() {
+        None
+    } else {
+        Some(normalized)
+    }
+}
+
+#[tauri::command]
+async fn fetch_arxiv_xml(doi: String) -> Result<String, String> {
+    let arxiv_id = normalize_arxiv_id(&doi).ok_or_else(|| "Invalid arXiv identifier".to_string())?;
+    let url = format!("https://export.arxiv.org/api/query?id_list={}", arxiv_id);
+    let response = reqwest::get(url).await.map_err(|e| e.to_string())?;
+    if !response.status().is_success() {
+        return Err(format!("arXiv request failed with status {}", response.status()));
+    }
+    response.text().await.map_err(|e| e.to_string())
+}
 
 #[tauri::command]
 async fn get_settings() -> Result<Settings, String> {
@@ -94,6 +151,7 @@ fn main() {
             get_default_db_path,
             get_default_db_folder,
             get_db_path,
+            fetch_arxiv_xml,
             restart_app
         ])
         .run(tauri::generate_context!())
